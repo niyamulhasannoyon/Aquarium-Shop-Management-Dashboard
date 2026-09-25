@@ -7,6 +7,7 @@ import {
   Clock,
   Layers,
   Sparkles,
+  FolderPlus,
 } from 'lucide-react';
 import {
   Category,
@@ -39,6 +40,7 @@ import { NewSaleModal } from '@/components/modals/new-sale-modal';
 import { AddStockModal } from '@/components/modals/add-stock-modal';
 import { AddProductModal } from '@/components/modals/add-product-modal';
 import { CollectDueModal } from '@/components/modals/collect-due-modal';
+import { AddCategoryModal } from '@/components/modals/add-category-modal';
 
 export const ExecutiveDashboard: React.FC = () => {
   // Application Data States initialized with PostgreSQL schema mock data
@@ -52,7 +54,7 @@ export const ExecutiveDashboard: React.FC = () => {
 
   // Modal State Triggers
   const [activeModal, setActiveModal] = useState<
-    'none' | 'new_sale' | 'add_stock' | 'add_product' | 'collect_due'
+    'none' | 'new_sale' | 'add_stock' | 'add_product' | 'collect_due' | 'add_category'
   >('none');
   const [restockProductId, setRestockProductId] = useState<number | null>(null);
 
@@ -102,6 +104,18 @@ export const ExecutiveDashboard: React.FC = () => {
   };
   const handleOpenAddProduct = () => setActiveModal('add_product');
   const handleOpenCollectDue = () => setActiveModal('collect_due');
+  const handleOpenAddCategory = () => setActiveModal('add_category');
+
+  // Category Addition Handler
+  const handleAddCategory = (categoryName: string) => {
+    const newCatId = categories.length > 0 ? Math.max(...categories.map((c) => c.id)) + 1 : 1;
+    const newCat: Category = {
+      id: newCatId,
+      name: categoryName,
+      created_at: new Date().toISOString(),
+    };
+    setCategories((prev) => [...prev, newCat]);
+  };
 
   // Submit Handlers simulating PostgreSQL triggers
   const handleCreateSale = (saleData: {
@@ -110,6 +124,7 @@ export const ExecutiveDashboard: React.FC = () => {
       product_id: number;
       unit_type: string;
       quantity: number;
+      multiplier: number;
       unit_price: number;
       cost_price_snapshot: number;
       subtotal: number;
@@ -132,27 +147,31 @@ export const ExecutiveDashboard: React.FC = () => {
       sale_date: nowIso,
     };
 
-    const newItems: SaleItem[] = saleData.items.map((item, idx) => ({
-      id: saleItems.length + idx + 1,
-      sale_id: newSaleId,
-      product_id: item.product_id,
-      unit_type: item.unit_type,
-      quantity: item.quantity,
-      multiplier: 1,
-      stock_deduct_qty: item.quantity,
-      unit_price: item.unit_price,
-      cost_price_snapshot: item.cost_price_snapshot,
-      subtotal: item.subtotal,
-    }));
+    const newItems: SaleItem[] = saleData.items.map((item, idx) => {
+      const stockDeductQty = item.quantity * item.multiplier;
+      return {
+        id: saleItems.length + idx + 1,
+        sale_id: newSaleId,
+        product_id: item.product_id,
+        unit_type: item.unit_type,
+        quantity: item.quantity,
+        multiplier: item.multiplier,
+        stock_deduct_qty: stockDeductQty,
+        unit_price: item.unit_price,
+        cost_price_snapshot: item.cost_price_snapshot,
+        subtotal: item.subtotal,
+      };
+    });
 
-    // Trigger 2: Deduct product stock on sale item insertion
+    // Trigger 2: Deduct product stock on sale item insertion (quantity * multiplier)
     setProducts((prev) =>
       prev.map((prod) => {
         const itemDeduct = saleData.items.find((i) => i.product_id === prod.id);
         if (itemDeduct) {
+          const deductTotal = itemDeduct.quantity * itemDeduct.multiplier;
           return {
             ...prod,
-            current_stock: Math.max(0, prod.current_stock - itemDeduct.quantity),
+            current_stock: Math.max(0, prod.current_stock - deductTotal),
           };
         }
         return prod;
@@ -316,6 +335,14 @@ export const ExecutiveDashboard: React.FC = () => {
 
           <div className="flex items-center space-x-3 self-end md:self-auto">
             <button
+              onClick={handleOpenAddCategory}
+              className="inline-flex items-center px-3.5 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white transition-all shadow-sm"
+              title="Add a new product category"
+            >
+              <FolderPlus className="w-3.5 h-3.5 mr-1.5" />
+              + Category
+            </button>
+            <button
               onClick={handleResetData}
               className="inline-flex items-center px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all shadow-sm"
               title="Reset dataset to initial state"
@@ -376,6 +403,7 @@ export const ExecutiveDashboard: React.FC = () => {
           onClose={() => setActiveModal('none')}
           categories={categories}
           onSubmitProduct={handleAddProduct}
+          onAddCategory={handleAddCategory}
         />
 
         <CollectDueModal
@@ -383,6 +411,12 @@ export const ExecutiveDashboard: React.FC = () => {
           onClose={() => setActiveModal('none')}
           customers={customers}
           onSubmitCollection={handleCollectDue}
+        />
+
+        <AddCategoryModal
+          isOpen={activeModal === 'add_category'}
+          onClose={() => setActiveModal('none')}
+          onSubmitCategory={handleAddCategory}
         />
       </div>
     </div>

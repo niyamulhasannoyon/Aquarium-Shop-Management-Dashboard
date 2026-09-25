@@ -53,6 +53,12 @@ export const LowStockWarningTable: React.FC<LowStockWarningTableProps> = ({
             <tbody className="divide-y divide-slate-800/60">
               {lowStockItems.map((item) => {
                 const isCritical = item.current_stock <= 5;
+                const joraCount = (item.current_stock / 2).toFixed(1).replace(/\.0$/, '');
+                const isPieceOrPair = ['piece', 'pcs', 'jora', 'pair'].includes((item.default_unit || '').toLowerCase());
+                const stockLabel = isPieceOrPair
+                  ? `${item.current_stock} Pcs (${joraCount} Jora / জোড়া)`
+                  : `${item.current_stock} ${item.default_unit}s`;
+
                 return (
                   <tr
                     key={item.id}
@@ -77,11 +83,14 @@ export const LowStockWarningTable: React.FC<LowStockWarningTableProps> = ({
                         }`}
                       >
                         <ShieldAlert className="w-3 h-3 mr-1" />
-                        {item.current_stock} {item.default_unit}s left
+                        {stockLabel}
                       </span>
                     </td>
                     <td className="py-3 px-3 text-right font-medium text-slate-300 whitespace-nowrap">
-                      {formatCurrency(item.selling_price)}
+                      <div>{formatCurrency(item.selling_price)} / pc</div>
+                      <div className="text-[10px] text-indigo-400 font-semibold">
+                        {formatCurrency(item.selling_price * 2)} / jora
+                      </div>
                     </td>
                     <td className="py-3 px-3 text-right whitespace-nowrap">
                       {onRestockItem && (

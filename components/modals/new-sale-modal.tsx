@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, ShoppingBag, Plus, Trash2, Check } from 'lucide-react';
+import { X, ShoppingBag, Plus, Trash2, Check, Info } from 'lucide-react';
 import { Customer, Product } from '@/types/executive';
 import { formatCurrency } from '@/lib/calculations';
 
@@ -16,6 +16,7 @@ interface NewSaleModalProps {
       product_id: number;
       unit_type: string;
       quantity: number;
+      multiplier: number;
       unit_price: number;
       cost_price_snapshot: number;
       subtotal: number;
@@ -26,6 +27,13 @@ interface NewSaleModalProps {
   }) => void;
 }
 
+interface CartRow {
+  product_id: number;
+  unit_type: 'single' | 'jora';
+  quantity: number;
+  unit_price: number;
+}
+
 export const NewSaleModal: React.FC<NewSaleModalProps> = ({
   isOpen,
   onClose,
@@ -34,15 +42,10 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
   onSubmitSale,
 }) => {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('walk-in');
-  const [cart, setCart] = useState<
-    Array<{
-      product_id: number;
-      quantity: number;
-      unit_price: number;
-    }>
-  >([
+  const [cart, setCart] = useState<CartRow[]>([
     {
       product_id: products[0]?.id || 1,
+      unit_type: 'single',
       quantity: 1,
       unit_price: products[0]?.selling_price || 0,
     },
@@ -57,6 +60,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
       ...prev,
       {
         product_id: firstProd?.id || 1,
+        unit_type: 'single',
         quantity: 1,
         unit_price: firstProd?.selling_price || 0,
       },
@@ -75,10 +79,30 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
           ? {
               ...item,
               product_id: productId,
-              unit_price: prod ? prod.selling_price : 0,
+              unit_price: prod
+                ? item.unit_type === 'jora'
+                  ? prod.selling_price * 2
+                  : prod.selling_price
+                : 0,
             }
           : item
       )
+    );
+  };
+
+  const handleUnitTypeChange = (index: number, unitType: 'single' | 'jora') => {
+    setCart((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item;
+        const prod = products.find((p) => p.id === item.product_id);
+        const singlePrice = prod ? prod.selling_price : item.unit_price;
+        const price = unitType === 'jora' ? singlePrice * 2 : singlePrice;
+        return {
+          ...item,
+          unit_type: unitType,
+          unit_price: price,
+        };
+      })
     );
   };
 
@@ -104,12 +128,15 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
 
     const items = cart.map((c) => {
       const prod = products.find((p) => p.id === c.product_id);
+      const multiplier = c.unit_type === 'jora' ? 2 : 1;
+      const unitCost = prod ? prod.cost_price : 0;
       return {
         product_id: c.product_id,
-        unit_type: prod?.default_unit || 'piece',
+        unit_type: c.unit_type === 'jora' ? 'Jora (জোড়া)' : 'Single (পিস)',
         quantity: c.quantity,
+        multiplier,
         unit_price: c.unit_price,
-        cost_price_snapshot: prod ? prod.cost_price : 0,
+        cost_price_snapshot: unitCost * multiplier,
         subtotal: c.quantity * c.unit_price,
       };
     });
@@ -127,7 +154,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/50">
           <div className="flex items-center space-x-2">
             <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -143,7 +170,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[85vh] overflow-y-auto">
           {/* Customer Selection */}
           <div>
             <label className="block text-xs font-semibold uppercase text-slate-400 mb-2">
@@ -166,8 +193,12 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
           {/* Cart Items */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold uppercase text-slate-400">
+              <label className="text-xs font-semibold uppercase text-slate-400 flex items-center">
                 Sale Line Items
+                <span className="ml-2 text-[11px] text-indigo-400 normal-case flex items-center font-normal">
+                  <Info className="w-3 h-3 mr-1" />
+                  Default Jora (জোড়া = 2 Pcs) option available
+                </span>
               </label>
               <button
                 type="button"
@@ -181,38 +212,60 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
             <div className="space-y-3">
               {cart.map((item, idx) => {
                 const selectedProd = products.find((p) => p.id === item.product_id);
+                const stockPcs = selectedProd?.current_stock || 0;
+                const stockJora = (stockPcs / 2).toFixed(1).replace(/\.0$/, '');
+
                 return (
                   <div
                     key={idx}
                     className="flex flex-wrap sm:flex-nowrap items-center gap-3 p-3 bg-slate-800/60 rounded-xl border border-slate-700/60"
                   >
-                    <div className="flex-1 min-w-[180px]">
+                    {/* Product Selection */}
+                    <div className="flex-1 min-w-[200px]">
                       <select
                         value={item.product_id}
                         onChange={(e) => handleProductChange(idx, Number(e.target.value))}
                         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
                       >
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} (Stock: {p.current_stock})
-                          </option>
-                        ))}
+                        {products.map((p) => {
+                          const pStockJora = (p.current_stock / 2).toFixed(1).replace(/\.0$/, '');
+                          return (
+                            <option key={p.id} value={p.id}>
+                              {p.name} (Stock: {p.current_stock} Pcs / {pStockJora} Jora)
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
 
-                    <div className="w-24">
+                    {/* Unit Option: Single (1 Pc) vs Jora (2 Pcs) */}
+                    <div className="w-32">
+                      <select
+                        value={item.unit_type}
+                        onChange={(e) =>
+                          handleUnitTypeChange(idx, e.target.value as 'single' | 'jora')
+                        }
+                        className="w-full bg-slate-900 border border-indigo-500/40 rounded-lg px-2.5 py-1.5 text-xs text-indigo-300 font-bold"
+                      >
+                        <option value="single">Single (1 Pc)</option>
+                        <option value="jora">1 Jora (2 Pcs)</option>
+                      </select>
+                    </div>
+
+                    {/* Quantity */}
+                    <div className="w-20">
                       <input
                         type="number"
                         min="1"
-                        max={selectedProd?.current_stock || 999}
                         value={item.quantity}
                         onChange={(e) => handleQtyChange(idx, Number(e.target.value))}
                         placeholder="Qty"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white text-center"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white text-center"
                       />
                     </div>
 
-                    <div className="w-28">
+                    {/* Unit Price */}
+                    <div className="w-24">
                       <input
                         type="number"
                         min="0"
@@ -220,11 +273,12 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
                         value={item.unit_price}
                         onChange={(e) => handlePriceChange(idx, Number(e.target.value))}
                         placeholder="Price"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white text-right"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white text-right font-medium"
                       />
                     </div>
 
-                    <div className="w-28 text-right font-semibold text-emerald-400 text-xs">
+                    {/* Subtotal */}
+                    <div className="w-28 text-right font-bold text-emerald-400 text-xs">
                       {formatCurrency(item.quantity * item.unit_price)}
                     </div>
 
