@@ -3,6 +3,6 @@
 import React from 'react';
 import { ExecutiveDashboard } from '@/components/executive-overview-dashboard';
 
-export default function HomePage() {
+export default function DashboardPage() {
   return <ExecutiveDashboard />;
 }
