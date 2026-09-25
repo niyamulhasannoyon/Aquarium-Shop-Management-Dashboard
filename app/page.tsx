@@ -1,17 +1,8 @@
-import { createClient } from '@/utils/supabase/server'
-import { cookies } from 'next/headers'
+'use client';
 
-export default async function Page() {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
+import React from 'react';
+import { ExecutiveDashboard } from '@/components/executive-overview-dashboard';
 
-  const { data: todos } = await supabase.from('todos').select()
-
-  return (
-    <ul>
-      {todos?.map((todo: any) => (
-        <li key={todo.id}>{todo.name}</li>
-      ))}
-    </ul>
-  )
+export default function HomePage() {
+  return <ExecutiveDashboard />;
 }
