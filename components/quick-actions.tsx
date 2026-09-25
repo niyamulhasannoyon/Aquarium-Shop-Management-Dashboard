@@ -52,39 +52,39 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
   ];
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 mb-8 backdrop-blur-md shadow-lg">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 mb-6 sm:mb-8 backdrop-blur-md shadow-lg">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
         <div className="flex items-center space-x-2">
           <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
             <Sparkles className="w-4 h-4" />
           </div>
-          <h2 className="text-base font-semibold text-white tracking-wide">
+          <h2 className="text-sm sm:text-base font-semibold text-white tracking-wide">
             Quick Action Shortcuts
           </h2>
         </div>
-        <span className="text-xs text-slate-400">Jump directly to common tasks</span>
+        <span className="text-[11px] sm:text-xs text-slate-400 hidden xs:inline">Jump directly to common tasks</span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
         {actions.map((act, index) => {
           const Icon = act.icon;
           return (
             <button
               key={index}
               onClick={act.onClick}
-              className={`relative flex items-center justify-between p-4 rounded-xl font-medium transition-all duration-200 shadow-md hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 text-left ${act.bg} group overflow-hidden`}
+              className={`relative flex items-center justify-between p-3 sm:p-4 rounded-xl font-medium transition-all duration-200 shadow-md hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98] text-left ${act.bg} group overflow-hidden min-h-[64px] sm:min-h-[72px]`}
             >
-              <div className="flex items-center space-x-3.5 z-10">
-                <div className="p-2.5 rounded-lg bg-white/10 group-hover:scale-110 transition-transform">
-                  <Icon className="w-5 h-5" />
+              <div className="flex items-center space-x-2.5 sm:space-x-3.5 z-10">
+                <div className="p-2 sm:p-2.5 rounded-lg bg-white/10 group-hover:scale-110 transition-transform shrink-0">
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold tracking-tight">{act.label}</div>
-                  <div className="text-[11px] opacity-80">{act.subtitle}</div>
+                  <div className="text-xs sm:text-sm font-bold tracking-tight">{act.label}</div>
+                  <div className="text-[10px] sm:text-[11px] opacity-80 line-clamp-1">{act.subtitle}</div>
                 </div>
               </div>
 
-              <span className="text-[10px] font-mono tracking-wider uppercase bg-white/20 text-white px-2 py-0.5 rounded-full z-10">
+              <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-mono tracking-wider uppercase bg-white/20 text-white px-2 py-0.5 rounded-full z-10 shrink-0 ml-1">
                 {act.badge}
               </span>
             </button>
