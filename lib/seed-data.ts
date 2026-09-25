@@ -1,0 +1,101 @@
+import { Category, Product } from '@/types/inventory';
+
+export const INITIAL_CATEGORIES: Category[] = [
+  { id: 1, name: 'Footwear - Shoes', created_at: new Date('2026-01-10').toISOString() },
+  { id: 2, name: 'Footwear - Sandals', created_at: new Date('2026-01-12').toISOString() },
+  { id: 3, name: 'Socks & Accessories', created_at: new Date('2026-01-15').toISOString() },
+  { id: 4, name: 'Shoe Care', created_at: new Date('2026-01-18').toISOString() },
+];
+
+export const INITIAL_PRODUCTS: Product[] = [
+  {
+    id: 1,
+    category_id: 1,
+    name: 'Leather Loafers Black',
+    default_unit: 'Pair',
+    cost_price: 25.00,
+    selling_price: 42.00,
+    current_stock: 15,
+    created_at: new Date('2026-02-01').toISOString(),
+  },
+  {
+    id: 2,
+    category_id: 1,
+    name: 'Sports Running Shoes Gray',
+    default_unit: 'Pair',
+    cost_price: 20.00,
+    selling_price: 35.00,
+    current_stock: 20,
+    created_at: new Date('2026-02-02').toISOString(),
+  },
+  {
+    id: 3,
+    category_id: 1,
+    name: 'Casual Sneakers White',
+    default_unit: 'Pair',
+    cost_price: 18.00,
+    selling_price: 30.00,
+    current_stock: 3, // Low Stock < 5
+    created_at: new Date('2026-02-05').toISOString(),
+  },
+  {
+    id: 4,
+    category_id: 2,
+    name: 'Formal Leather Sandals Brown',
+    default_unit: 'Pair',
+    cost_price: 15.00,
+    selling_price: 26.00,
+    current_stock: 12,
+    created_at: new Date('2026-02-08').toISOString(),
+  },
+  {
+    id: 5,
+    category_id: 2,
+    name: 'Rubber Slide Sandals',
+    default_unit: 'Pair',
+    cost_price: 5.00,
+    selling_price: 10.00,
+    current_stock: 30,
+    created_at: new Date('2026-02-10').toISOString(),
+  },
+  {
+    id: 6,
+    category_id: 3,
+    name: 'Cotton Ankle Socks 3-Pack',
+    default_unit: 'Piece',
+    cost_price: 2.50,
+    selling_price: 5.50,
+    current_stock: 50,
+    created_at: new Date('2026-02-14').toISOString(),
+  },
+  {
+    id: 7,
+    category_id: 4,
+    name: 'Black Shoe Polish 100g',
+    default_unit: 'Piece',
+    cost_price: 2.00,
+    selling_price: 4.50,
+    current_stock: 25,
+    created_at: new Date('2026-02-18').toISOString(),
+  },
+  {
+    id: 8,
+    category_id: 4,
+    name: 'Shoe Brush Wooden',
+    default_unit: 'Piece',
+    cost_price: 1.50,
+    selling_price: 3.50,
+    current_stock: 2, // Low Stock < 5
+    created_at: new Date('2026-02-20').toISOString(),
+  },
+  {
+    id: 9,
+    category_id: 1,
+    name: 'Premium Oxfords Tan',
+    default_unit: 'Pair',
+    cost_price: 45.00,
+    selling_price: 75.00,
+    current_stock: 4, // Low Stock < 5
+    created_at: new Date('2026-02-22').toISOString(),
+  },
+];
