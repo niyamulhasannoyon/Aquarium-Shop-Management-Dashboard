@@ -63,7 +63,7 @@ export const AddCategoryModal: React.FC<AddCategoryModalProps> = ({ open, onOpen
               <Tag className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
               <Input
                 id="categoryName"
-                placeholder="e.g. Footwear, Electronics, Winter Wear"
+                placeholder="e.g. Fish, Electronic Product, Accessories"
                 value={categoryName}
                 onChange={(e) => {
                   setCategoryName(e.target.value);

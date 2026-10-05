@@ -7,7 +7,7 @@ describe('ExecutiveOverviewDashboard Component', () => {
   it('renders the store title and dashboard header', () => {
     render(<ExecutiveDashboard />);
     expect(screen.getByText('Niloy Friend Shop')).toBeInTheDocument();
-    expect(screen.getByText(/Executive Dashboard/i)).toBeInTheDocument();
+    expect(screen.getByText(/Aquarium POS & Ledger/i)).toBeInTheDocument();
   });
 
   it('renders all 5 top KPI summary cards', () => {
@@ -30,13 +30,13 @@ describe('ExecutiveOverviewDashboard Component', () => {
   it('renders recent sales invoices list section', () => {
     render(<ExecutiveDashboard />);
     expect(screen.getByText('Recent Sales Invoices')).toBeInTheDocument();
-    expect(screen.getByText('INV-2026-005')).toBeInTheDocument();
+    expect(screen.getAllByText('INV-2026-005')[0]).toBeInTheDocument();
   });
 
   it('renders low stock warning alert section', () => {
     render(<ExecutiveDashboard />);
     expect(screen.getByText('Low Stock Warning Alert')).toBeInTheDocument();
-    expect(screen.getByText(/Soybean Oil/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Gorami/i)[0]).toBeInTheDocument();
   });
 
   it('opens New Sale modal when New Sale button is clicked', () => {

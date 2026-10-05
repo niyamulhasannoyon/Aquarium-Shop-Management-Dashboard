@@ -14,6 +14,7 @@ interface AddStockModalProps {
     product_id: number;
     unit_type: string;
     quantity: number;
+    multiplier: number;
     unit_cost: number;
     total_investment: number;
   }) => void;
@@ -59,6 +60,7 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
       product_id: selectedProductId,
       unit_type: selectedProduct.default_unit || 'piece',
       quantity,
+      multiplier: 1,
       unit_cost: unitCost,
       total_investment: totalInvestment,
     });

@@ -5,10 +5,64 @@ import {
   SaleItem,
   Product,
   Category,
+  DueCollection,
   KpiSummaryMetrics,
   RecentSaleView,
   LowStockItemView,
+  TimeframePeriod,
+  TimeframeMetrics,
+  CombinedActivityEvent,
 } from '@/types/executive';
+
+/**
+ * Helper to check if a date string falls within a timeframe period
+ */
+export function isDateInTimeframe(
+  dateStr: string,
+  period: TimeframePeriod,
+  customStart?: string,
+  customEnd?: string
+): boolean {
+  if (!dateStr) return false;
+  const targetDate = new Date(dateStr);
+  if (isNaN(targetDate.getTime())) return false;
+  const now = new Date();
+
+  if (period === 'overall') return true;
+
+  if (period === 'today') {
+    return (
+      targetDate.getFullYear() === now.getFullYear() &&
+      targetDate.getMonth() === now.getMonth() &&
+      targetDate.getDate() === now.getDate()
+    );
+  }
+
+  if (period === 'this_month') {
+    return (
+      targetDate.getFullYear() === now.getFullYear() &&
+      targetDate.getMonth() === now.getMonth()
+    );
+  }
+
+  if (period === 'last_month') {
+    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return (
+      targetDate.getFullYear() === lastMonthDate.getFullYear() &&
+      targetDate.getMonth() === lastMonthDate.getMonth()
+    );
+  }
+
+  if (period === 'custom' && customStart && customEnd) {
+    const start = new Date(customStart);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(customEnd);
+    end.setHours(23, 59, 59, 999);
+    return targetDate >= start && targetDate <= end;
+  }
+
+  return true;
+}
 
 /**
  * 1. Total Stock Investment: Sum of all purchases (quantity * unit_cost).
@@ -64,6 +118,60 @@ export function calculateAvailableInventoryValuation(products: Product[]): numbe
 }
 
 /**
+ * Calculate metrics for a specific Timeframe (Daily, Monthly, Overall, etc.)
+ */
+export function calculateMetricsForTimeframe(
+  data: {
+    purchases: Purchase[];
+    sales: Sale[];
+    customers: Customer[];
+    saleItems: SaleItem[];
+    products: Product[];
+    dueCollections?: DueCollection[];
+  },
+  period: TimeframePeriod = 'overall',
+  customStart?: string,
+  customEnd?: string
+): TimeframeMetrics {
+  const filteredSales = data.sales.filter((s) =>
+    isDateInTimeframe(s.sale_date, period, customStart, customEnd)
+  );
+
+  const filteredPurchases = data.purchases.filter((p) =>
+    isDateInTimeframe(p.purchase_date, period, customStart, customEnd)
+  );
+
+  const filteredDueCollections = (data.dueCollections || []).filter((dc) =>
+    isDateInTimeframe(dc.payment_date, period, customStart, customEnd)
+  );
+
+  // Filter sale items corresponding to filtered sales
+  const filteredSaleIds = new Set(filteredSales.map((s) => s.id));
+  const filteredSaleItems = data.saleItems.filter((si) => filteredSaleIds.has(si.sale_id));
+
+  const totalSalesRevenue = calculateTotalSalesRevenue(filteredSales);
+  const totalStockInvestment = calculateTotalStockInvestment(filteredPurchases);
+  const totalOutstandingDue = calculateTotalOutstandingDue(data.customers); // Always current total due
+  const realizedNetProfit = calculateRealizedNetProfit(filteredSaleItems);
+  const availableInventoryValuation = calculateAvailableInventoryValuation(data.products);
+  const totalDueCollectionsAmount = filteredDueCollections.reduce((acc, c) => acc + (Number(c.amount_paid) || 0), 0);
+
+  return {
+    period,
+    totalStockInvestment,
+    totalSalesRevenue,
+    totalOutstandingDue,
+    realizedNetProfit,
+    availableInventoryValuation,
+    totalSalesCount: filteredSales.length,
+    totalPurchasesCount: filteredPurchases.length,
+    totalDueCollectionsAmount,
+    startDate: customStart,
+    endDate: customEnd,
+  };
+}
+
+/**
  * Calculate all 5 Executive KPI Summary Metrics at once.
  */
 export function calculateAllMetrics(data: {
@@ -80,6 +188,100 @@ export function calculateAllMetrics(data: {
     realizedNetProfit: calculateRealizedNetProfit(data.saleItems),
     availableInventoryValuation: calculateAvailableInventoryValuation(data.products),
   };
+}
+
+/**
+ * Get Combined Activity Feed (Day-by-Day Buy/Sell Log)
+ */
+export function getCombinedActivityFeed(data: {
+  sales: Sale[];
+  purchases: Purchase[];
+  dueCollections: DueCollection[];
+  customers: Customer[];
+  products: Product[];
+  saleItems: SaleItem[];
+}): CombinedActivityEvent[] {
+  const customerMap = new Map<number, Customer>();
+  data.customers.forEach((c) => customerMap.set(c.id, c));
+
+  const productMap = new Map<number, Product>();
+  data.products.forEach((p) => productMap.set(p.id, p));
+
+  const events: CombinedActivityEvent[] = [];
+
+  // 1. Sales Events
+  data.sales.forEach((s) => {
+    const cust = s.customer_id ? customerMap.get(s.customer_id) : undefined;
+    const items = data.saleItems.filter((si) => si.sale_id === s.id);
+    
+    // Calculate profit for this sale
+    const saleProfit = items.reduce((sum, item) => {
+      return sum + ((item.unit_price - item.cost_price_snapshot) * item.quantity);
+    }, 0);
+
+    const itemsSummary = items
+      .map((i) => {
+        const prod = productMap.get(i.product_id);
+        return `${i.quantity} ${i.unit_type} ${prod ? prod.name : 'Product'}`;
+      })
+      .join(', ');
+
+    events.push({
+      id: `sale-${s.id}`,
+      type: 'sale',
+      timestamp: new Date(s.sale_date).getTime(),
+      dateStr: s.sale_date,
+      ref: s.invoice_no,
+      title: `Sale Invoice (${s.invoice_no})`,
+      partyName: cust ? cust.name : 'Walk-in Customer (নগদ খদ্দের)',
+      partyPhone: cust?.phone,
+      itemsSummary: itemsSummary || 'Retail Items',
+      totalAmount: s.total_amount,
+      paidAmount: s.paid_amount,
+      dueAmount: s.due_amount,
+      profit: saleProfit,
+    });
+  });
+
+  // 2. Purchase Events (Restock / Buying)
+  data.purchases.forEach((p) => {
+    const prod = productMap.get(p.product_id);
+    events.push({
+      id: `pur-${p.id}`,
+      type: 'purchase',
+      timestamp: new Date(p.purchase_date).getTime(),
+      dateStr: p.purchase_date,
+      ref: `PO-${p.id.toString().padStart(4, '0')}`,
+      title: `Stock Purchase (${prod ? prod.name : 'Product'})`,
+      partyName: 'Supplier / Wholesale (মহাজন/পাইকারি)',
+      itemsSummary: `Bought ${p.quantity} ${p.unit_type} @ ৳${p.unit_cost}/${p.unit_type}`,
+      totalAmount: p.total_investment,
+      paidAmount: p.total_investment,
+      dueAmount: 0,
+    });
+  });
+
+  // 3. Due Collections
+  data.dueCollections.forEach((dc) => {
+    const cust = customerMap.get(dc.customer_id);
+    events.push({
+      id: `dc-${dc.id}`,
+      type: 'collection',
+      timestamp: new Date(dc.payment_date).getTime(),
+      dateStr: dc.payment_date,
+      ref: `REC-${dc.id.toString().padStart(4, '0')}`,
+      title: `Due Collection Receipt`,
+      partyName: cust ? cust.name : 'Customer',
+      partyPhone: cust?.phone,
+      note: dc.note || 'Cash payment received for due',
+      totalAmount: dc.amount_paid,
+      paidAmount: dc.amount_paid,
+      dueAmount: 0,
+    });
+  });
+
+  // Sort descending (newest first)
+  return events.sort((a, b) => b.timestamp - a.timestamp);
 }
 
 /**
@@ -151,7 +353,7 @@ export function getLowStockProducts(
 }
 
 /**
- * Helper to format numbers as Currency (BDT ৳ or $ standard display)
+ * Helper to format numbers as Currency (BDT ৳ display)
  */
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-BD', {
@@ -161,3 +363,4 @@ export function formatCurrency(amount: number): string {
     minimumFractionDigits: 0,
   }).format(amount).replace('BDT', '৳');
 }
+

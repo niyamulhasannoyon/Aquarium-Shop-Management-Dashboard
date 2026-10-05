@@ -7,9 +7,10 @@ import { formatCurrency } from '@/lib/calculations';
 
 interface RecentSalesListProps {
   sales: RecentSaleView[];
+  onSelectCustomer?: (customerName: string) => void;
 }
 
-export const RecentSalesList: React.FC<RecentSalesListProps> = ({ sales }) => {
+export const RecentSalesList: React.FC<RecentSalesListProps> = ({ sales, onSelectCustomer }) => {
   const getBadge = (status: 'paid' | 'partial' | 'due') => {
     switch (status) {
       case 'paid':
@@ -96,10 +97,13 @@ export const RecentSalesList: React.FC<RecentSalesListProps> = ({ sales }) => {
                 </div>
 
                 <div className="flex items-center justify-between text-xs text-slate-300">
-                  <span className="flex items-center text-slate-400">
+                  <button
+                    onClick={() => onSelectCustomer && onSelectCustomer(sale.customer_name)}
+                    className="flex items-center text-slate-300 hover:text-purple-400 text-left transition-colors font-medium"
+                  >
                     <User className="w-3 h-3 mr-1 text-slate-500" />
                     {sale.customer_name}
-                  </span>
+                  </button>
                   <span className="font-bold text-white">{formatCurrency(sale.total_amount)}</span>
                 </div>
 
@@ -144,10 +148,13 @@ export const RecentSalesList: React.FC<RecentSalesListProps> = ({ sales }) => {
                           <div className="font-semibold text-slate-200 group-hover:text-white font-mono text-xs">
                             {sale.invoice_no}
                           </div>
-                          <div className="text-xs text-slate-400 flex items-center mt-0.5">
+                          <button
+                            onClick={() => onSelectCustomer && onSelectCustomer(sale.customer_name)}
+                            className="text-xs text-slate-400 hover:text-purple-400 flex items-center mt-0.5 transition-colors"
+                          >
                             <User className="w-3 h-3 mr-1 opacity-70" />
                             {sale.customer_name}
-                          </div>
+                          </button>
                         </div>
                       </div>
                     </td>

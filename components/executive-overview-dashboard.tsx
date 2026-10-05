@@ -6,8 +6,11 @@ import {
   RefreshCw,
   Clock,
   Layers,
-  Sparkles,
-  FolderPlus,
+  UserPlus,
+  Users,
+  Calendar,
+  BookOpen,
+  BarChart3,
 } from 'lucide-react';
 import {
   Category,
@@ -17,6 +20,7 @@ import {
   Sale,
   SaleItem,
   DueCollection,
+  TimeframePeriod,
 } from '@/types/executive';
 import {
   initialCategories,
@@ -28,7 +32,7 @@ import {
   initialDueCollections,
 } from '@/lib/mock-data';
 import {
-  calculateAllMetrics,
+  calculateMetricsForTimeframe,
   getRecentSales,
   getLowStockProducts,
 } from '@/lib/calculations';
@@ -36,13 +40,21 @@ import { KpiSummaryCards } from '@/components/kpi-summary-cards';
 import { QuickActions } from '@/components/quick-actions';
 import { RecentSalesList } from '@/components/recent-sales-list';
 import { LowStockWarningTable } from '@/components/low-stock-warning-table';
+import { DailyActivityLedger } from '@/components/daily-activity-ledger';
+import { DueManagementLedger } from '@/components/due-management-ledger';
 import { NewSaleModal } from '@/components/modals/new-sale-modal';
 import { AddStockModal } from '@/components/modals/add-stock-modal';
 import { AddProductModal } from '@/components/modals/add-product-modal';
 import { CollectDueModal } from '@/components/modals/collect-due-modal';
 import { AddCategoryModal } from '@/components/modals/add-category-modal';
+import { AddCustomerModal } from '@/components/modals/add-customer-modal';
+import { CustomerProfileModal } from '@/components/modals/customer-profile-modal';
 
 export const ExecutiveDashboard: React.FC = () => {
+  // Navigation Tab State
+  const [activeTab, setActiveTab] = useState<'overview' | 'daily_ledger' | 'due_khata'>('overview');
+  const [overviewTimeframe, setOverviewTimeframe] = useState<TimeframePeriod>('overall');
+
   // Application Data States initialized with PostgreSQL schema mock data
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -50,13 +62,14 @@ export const ExecutiveDashboard: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [sales, setSales] = useState<Sale[]>(initialSales);
   const [saleItems, setSaleItems] = useState<SaleItem[]>(initialSaleItems);
-  const [_dueCollections, setDueCollections] = useState<DueCollection[]>(initialDueCollections);
+  const [dueCollections, setDueCollections] = useState<DueCollection[]>(initialDueCollections);
 
   // Modal State Triggers
   const [activeModal, setActiveModal] = useState<
-    'none' | 'new_sale' | 'add_stock' | 'add_product' | 'collect_due' | 'add_category'
+    'none' | 'new_sale' | 'add_stock' | 'add_product' | 'collect_due' | 'add_category' | 'add_customer' | 'customer_profile'
   >('none');
   const [restockProductId, setRestockProductId] = useState<number | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
 
   // Fetch real database data if backend is available
   useEffect(() => {
@@ -74,16 +87,20 @@ export const ExecutiveDashboard: React.FC = () => {
     loadBackendData();
   }, []);
 
-  // Compute 5 Top KPI Metrics live
+  // Compute KPI Metrics live based on selected Overview Timeframe (Daily / Monthly / Overall)
   const kpiMetrics = useMemo(() => {
-    return calculateAllMetrics({
-      purchases,
-      sales,
-      customers,
-      saleItems,
-      products,
-    });
-  }, [purchases, sales, customers, saleItems, products]);
+    return calculateMetricsForTimeframe(
+      {
+        purchases,
+        sales,
+        customers,
+        saleItems,
+        products,
+        dueCollections,
+      },
+      overviewTimeframe
+    );
+  }, [purchases, sales, customers, saleItems, products, dueCollections, overviewTimeframe]);
 
   // Compute Last 5 Sales Invoices live
   const recentSales = useMemo(() => {
@@ -103,8 +120,27 @@ export const ExecutiveDashboard: React.FC = () => {
     setActiveModal('add_stock');
   };
   const handleOpenAddProduct = () => setActiveModal('add_product');
-  const handleOpenCollectDue = () => setActiveModal('collect_due');
+  const handleOpenCollectDue = (customerId?: number) => {
+    if (customerId) setSelectedCustomerId(customerId);
+    setActiveModal('collect_due');
+  };
   const handleOpenAddCategory = () => setActiveModal('add_category');
+  const handleOpenAddCustomer = () => setActiveModal('add_customer');
+  const handleOpenCustomerProfiles = (id?: number) => {
+    if (id) setSelectedCustomerId(id);
+    else if (!selectedCustomerId && customers.length > 0) setSelectedCustomerId(customers[0].id);
+    setActiveModal('customer_profile');
+  };
+
+  const handleSelectCustomerByName = (name: string) => {
+    const cust = customers.find((c) => c.name.toLowerCase() === name.toLowerCase());
+    if (cust) {
+      setSelectedCustomerId(cust.id);
+      setActiveModal('customer_profile');
+    } else {
+      setActiveModal('customer_profile');
+    }
+  };
 
   // Category Addition Handler
   const handleAddCategory = (categoryName: string) => {
@@ -115,6 +151,36 @@ export const ExecutiveDashboard: React.FC = () => {
       created_at: new Date().toISOString(),
     };
     setCategories((prev) => [...prev, newCat]);
+  };
+
+  // Customer Addition Handler
+  const handleAddCustomer = (customerData: {
+    name: string;
+    phone: string;
+    address: string;
+    initial_due: number;
+  }): Customer => {
+    const newCustId = customers.length > 0 ? Math.max(...customers.map((c) => c.id)) + 1 : 1;
+    const newCustomer: Customer = {
+      id: newCustId,
+      name: customerData.name,
+      phone: customerData.phone,
+      address: customerData.address,
+      total_due: customerData.initial_due,
+      created_at: new Date().toISOString(),
+    };
+    setCustomers((prev) => [newCustomer, ...prev]);
+
+    // Try sending to backend API if active
+    fetch('/api/customers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(customerData),
+    }).catch(() => {});
+
+    // Automatically select newly created customer profile
+    setSelectedCustomerId(newCustId);
+    return newCustomer;
   };
 
   // Submit Handlers simulating PostgreSQL triggers
@@ -163,68 +229,74 @@ export const ExecutiveDashboard: React.FC = () => {
       };
     });
 
-    // Trigger 2: Deduct product stock on sale item insertion (quantity * multiplier)
-    setProducts((prev) =>
-      prev.map((prod) => {
-        const itemDeduct = saleData.items.find((i) => i.product_id === prod.id);
-        if (itemDeduct) {
-          const deductTotal = itemDeduct.quantity * itemDeduct.multiplier;
+    setSales((prev) => [newSale, ...prev]);
+    setSaleItems((prev) => [...prev, ...newItems]);
+
+    // Trigger 2 Simulation: Deduct inventory stock
+    setProducts((prevProducts) =>
+      prevProducts.map((p) => {
+        const itemMatch = saleData.items.find((i) => i.product_id === p.id);
+        if (itemMatch) {
+          const deductQty = itemMatch.quantity * itemMatch.multiplier;
           return {
-            ...prod,
-            current_stock: Math.max(0, prod.current_stock - deductTotal),
+            ...p,
+            current_stock: Math.max(0, p.current_stock - deductQty),
           };
         }
-        return prod;
+        return p;
       })
     );
 
-    // Trigger 3: Increment customer total_due on sale insertion if due_amount > 0
+    // Trigger 3 Simulation: Increase customer total_due if due_amount > 0
     if (saleData.due_amount > 0 && saleData.customer_id !== null) {
-      setCustomers((prev) =>
-        prev.map((c) =>
+      setCustomers((prevCustomers) =>
+        prevCustomers.map((c) =>
           c.id === saleData.customer_id
             ? { ...c, total_due: c.total_due + saleData.due_amount }
             : c
         )
       );
     }
-
-    setSales((prev) => [newSale, ...prev]);
-    setSaleItems((prev) => [...prev, ...newItems]);
   };
 
-  const handleAddStock = (stockData: {
+  const handleAddStock = (purchaseData: {
     product_id: number;
     unit_type: string;
     quantity: number;
+    multiplier: number;
     unit_cost: number;
     total_investment: number;
   }) => {
-    const newPurchaseId = purchases.length > 0 ? Math.max(...purchases.map((p) => p.id)) + 1 : 1;
+    const newPurchId = purchases.length > 0 ? Math.max(...purchases.map((p) => p.id)) + 1 : 1;
+    const totalPieces = purchaseData.quantity * purchaseData.multiplier;
     const nowIso = new Date().toISOString();
 
     const newPurchase: Purchase = {
-      id: newPurchaseId,
-      product_id: stockData.product_id,
-      unit_type: stockData.unit_type,
-      quantity: stockData.quantity,
-      multiplier: 1,
-      total_pieces_added: stockData.quantity,
-      unit_cost: stockData.unit_cost,
-      total_investment: stockData.total_investment,
+      id: newPurchId,
+      product_id: purchaseData.product_id,
+      unit_type: purchaseData.unit_type,
+      quantity: purchaseData.quantity,
+      multiplier: purchaseData.multiplier,
+      total_pieces_added: totalPieces,
+      unit_cost: purchaseData.unit_cost,
+      total_investment: purchaseData.total_investment,
       purchase_date: nowIso,
     };
 
-    // Trigger 1: Increment product stock on purchase insertion
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === stockData.product_id
-          ? { ...p, current_stock: p.current_stock + stockData.quantity, cost_price: stockData.unit_cost }
+    setPurchases((prev) => [newPurchase, ...prev]);
+
+    // Trigger 1 Simulation: Increment inventory stock
+    setProducts((prevProducts) =>
+      prevProducts.map((p) =>
+        p.id === purchaseData.product_id
+          ? {
+              ...p,
+              current_stock: p.current_stock + totalPieces,
+              cost_price: purchaseData.unit_cost > 0 ? purchaseData.unit_cost : p.cost_price,
+            }
           : p
       )
     );
-
-    setPurchases((prev) => [newPurchase, ...prev]);
   };
 
   const handleAddProduct = (prodData: {
@@ -235,11 +307,11 @@ export const ExecutiveDashboard: React.FC = () => {
     selling_price: number;
     initial_stock: number;
   }) => {
-    const newProductId = products.length > 0 ? Math.max(...products.map((p) => p.id)) + 1 : 1;
+    const newProdId = products.length > 0 ? Math.max(...products.map((p) => p.id)) + 1 : 1;
     const nowIso = new Date().toISOString();
 
     const newProd: Product = {
-      id: newProductId,
+      id: newProdId,
       category_id: prodData.category_id,
       name: prodData.name,
       default_unit: prodData.default_unit,
@@ -250,23 +322,6 @@ export const ExecutiveDashboard: React.FC = () => {
     };
 
     setProducts((prev) => [...prev, newProd]);
-
-    // Add initial purchase entry if initial_stock > 0
-    if (prodData.initial_stock > 0) {
-      const newPurchaseId = purchases.length > 0 ? Math.max(...purchases.map((p) => p.id)) + 1 : 1;
-      const initialPurchase: Purchase = {
-        id: newPurchaseId,
-        product_id: newProductId,
-        unit_type: prodData.default_unit,
-        quantity: prodData.initial_stock,
-        multiplier: 1,
-        total_pieces_added: prodData.initial_stock,
-        unit_cost: prodData.cost_price,
-        total_investment: prodData.initial_stock * prodData.cost_price,
-        purchase_date: nowIso,
-      };
-      setPurchases((prev) => [initialPurchase, ...prev]);
-    }
   };
 
   const handleCollectDue = (collectionData: {
@@ -274,30 +329,31 @@ export const ExecutiveDashboard: React.FC = () => {
     amount_paid: number;
     note: string;
   }) => {
-    const newCollId = _dueCollections.length > 0 ? Math.max(..._dueCollections.map((dc) => dc.id)) + 1 : 1;
+    const newColId = dueCollections.length > 0 ? Math.max(...dueCollections.map((c) => c.id)) + 1 : 1;
     const nowIso = new Date().toISOString();
 
     const newCollection: DueCollection = {
-      id: newCollId,
+      id: newColId,
       customer_id: collectionData.customer_id,
       amount_paid: collectionData.amount_paid,
       note: collectionData.note,
       payment_date: nowIso,
     };
 
-    // Trigger 4: Deduct customer total_due on collection insertion
-    setCustomers((prev) =>
-      prev.map((c) =>
+    setDueCollections((prev) => [newCollection, ...prev]);
+
+    // Trigger 4 Simulation: Deduct customer total_due
+    setCustomers((prevCustomers) =>
+      prevCustomers.map((c) =>
         c.id === collectionData.customer_id
           ? { ...c, total_due: Math.max(0, c.total_due - collectionData.amount_paid) }
           : c
       )
     );
-
-    setDueCollections((prev) => [newCollection, ...prev]);
   };
 
-  const handleResetData = () => {
+  // Reset Demo State
+  const handleResetDemoData = () => {
     setCategories(initialCategories);
     setProducts(initialProducts);
     setPurchases(initialPurchases);
@@ -305,51 +361,60 @@ export const ExecutiveDashboard: React.FC = () => {
     setSales(initialSales);
     setSaleItems(initialSaleItems);
     setDueCollections(initialDueCollections);
+    setSelectedCustomerId(initialCustomers[0]?.id || null);
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-        {/* Header Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-6 backdrop-blur-xl shadow-xl">
-          <div className="flex items-center space-x-3 sm:space-x-4">
-            <div className="p-2.5 sm:p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg shadow-indigo-500/20 text-white shrink-0">
-              <Store className="w-6 h-6 sm:w-7 sm:h-7" />
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-6 font-sans">
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+        
+        {/* Top Header & Branding Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+          <div className="flex items-center space-x-3">
+            <div className="p-3 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-indigo-600 text-white shadow-lg shadow-emerald-900/30">
+              <Store className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+              <div className="flex items-center space-x-2">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
                   Niloy Friend Shop
                 </h1>
-                <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  Executive POS
+                <span className="text-[10px] uppercase font-bold tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                  Aquarium POS & Ledger
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-slate-400 mt-1 flex items-center">
-                <Clock className="w-3.5 h-3.5 mr-1 text-slate-500 shrink-0" />
-                Real-time POS & Retail Analytics
+              <p className="text-xs sm:text-sm text-slate-400 font-medium">
+                Aquarium Fish & Electronics Retail POS, Daily Hiseb & Due Ledger System
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {/* Quick Header Actions */}
+          <div className="flex items-center flex-wrap gap-2.5">
             <button
-              onClick={handleOpenAddCategory}
-              className="inline-flex items-center px-3 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white active:scale-95 transition-all shadow-sm"
-              title="Add a new product category"
+              onClick={handleOpenAddCustomer}
+              className="px-3.5 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-xl text-xs font-semibold text-purple-300 hover:text-white flex items-center transition-all shadow-md"
             >
-              <FolderPlus className="w-3.5 h-3.5 mr-1.5" />
-              + Category
+              <UserPlus className="w-3.5 h-3.5 mr-1.5" />
+              + Add Customer
             </button>
+
             <button
-              onClick={handleResetData}
-              className="inline-flex items-center px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 active:scale-95 transition-all shadow-sm"
-              title="Reset dataset to initial state"
+              onClick={() => handleOpenCustomerProfiles()}
+              className="px-3.5 py-2 bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 rounded-xl text-xs font-semibold text-cyan-300 hover:text-white flex items-center transition-all shadow-md"
+            >
+              <Users className="w-3.5 h-3.5 mr-1.5" />
+              Customer Profiles ({customers.length})
+            </button>
+
+            <button
+              onClick={handleResetDemoData}
+              className="px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 flex items-center transition-colors"
             >
               <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
               Reset Demo
             </button>
+
             <div className="px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-slate-300 flex items-center">
               <Layers className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
               Products: <strong className="text-white ml-1">{products.length}</strong>
@@ -357,29 +422,153 @@ export const ExecutiveDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* 1. Top KPI Summary Cards */}
-        <section>
-          <KpiSummaryCards metrics={kpiMetrics} />
-        </section>
+        {/* Navigation Bar Tabs */}
+        <div className="flex items-center space-x-2 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`flex-1 min-w-[140px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-2 ${
+              activeTab === 'overview'
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-950'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4" />
+            <span>📊 ওভারভিউ সারসংক্ষেপ</span>
+          </button>
 
-        {/* 2. Quick Action Shortcuts */}
-        <section>
-          <QuickActions
-            onOpenNewSale={handleOpenNewSale}
-            onOpenAddStock={() => handleOpenAddStock()}
-            onOpenAddProduct={handleOpenAddProduct}
-            onOpenCollectDue={handleOpenCollectDue}
-          />
-        </section>
+          <button
+            onClick={() => setActiveTab('daily_ledger')}
+            className={`flex-1 min-w-[170px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-2 ${
+              activeTab === 'daily_ledger'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-indigo-950'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            <span>🗓️ দৈনিক ও মাসিক লেনদেন খাতা</span>
+          </button>
 
-        {/* 3. Recent Activity Lists (2-Column Layout) */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          <RecentSalesList sales={recentSales} />
-          <LowStockWarningTable
-            lowStockItems={lowStockItems}
-            onRestockItem={(prodId) => handleOpenAddStock(prodId)}
-          />
-        </section>
+          <button
+            onClick={() => setActiveTab('due_khata')}
+            className={`flex-1 min-w-[150px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-2 ${
+              activeTab === 'due_khata'
+                ? 'bg-gradient-to-r from-rose-600 to-amber-600 text-white shadow-lg shadow-rose-950'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>📖 প্রফেশনাল বাকির খাতা</span>
+          </button>
+        </div>
+
+        {/* TAB 1: EXECUTIVE OVERVIEW */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200">
+            {/* Timeframe selector header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-3.5 rounded-2xl">
+              <div className="flex items-center space-x-2 text-xs font-semibold text-slate-300">
+                <Clock className="w-4 h-4 text-emerald-400" />
+                <span>সময়সীমা অনুযায়ী হিসাব দেখুন (Select Timeframe):</span>
+              </div>
+              <div className="flex items-center space-x-1.5">
+                <button
+                  onClick={() => setOverviewTimeframe('today')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    overviewTimeframe === 'today'
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'bg-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  আজকের হিসাব (Today)
+                </button>
+                <button
+                  onClick={() => setOverviewTimeframe('this_month')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    overviewTimeframe === 'this_month'
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'bg-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  এই মাসের হিসাব (This Month)
+                </button>
+                <button
+                  onClick={() => setOverviewTimeframe('overall')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    overviewTimeframe === 'overall'
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'bg-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  সর্বমোট (Overall)
+                </button>
+              </div>
+            </div>
+
+            {/* 1. Top KPI Summary Cards */}
+            <section>
+              <KpiSummaryCards metrics={kpiMetrics} />
+            </section>
+
+            {/* 2. Quick Action Shortcuts */}
+            <section>
+              <QuickActions
+                onOpenNewSale={handleOpenNewSale}
+                onOpenAddStock={() => handleOpenAddStock()}
+                onOpenAddProduct={handleOpenAddProduct}
+                onOpenCollectDue={() => handleOpenCollectDue()}
+                onOpenAddCustomer={handleOpenAddCustomer}
+                onOpenCustomerProfiles={() => handleOpenCustomerProfiles()}
+              />
+            </section>
+
+            {/* 3. Recent Activity Lists (2-Column Layout) */}
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <RecentSalesList
+                sales={recentSales}
+                onSelectCustomer={handleSelectCustomerByName}
+              />
+              <LowStockWarningTable
+                lowStockItems={lowStockItems}
+                onRestockItem={(prodId) => handleOpenAddStock(prodId)}
+              />
+            </section>
+          </div>
+        )}
+
+        {/* TAB 2: DAILY & MONTHLY BUY/SELL ACTIVITY LEDGER */}
+        {activeTab === 'daily_ledger' && (
+          <div className="animate-in fade-in duration-200">
+            <DailyActivityLedger
+              sales={sales}
+              purchases={purchases}
+              dueCollections={dueCollections}
+              customers={customers}
+              products={products}
+              saleItems={saleItems}
+              onOpenNewSale={handleOpenNewSale}
+              onOpenAddStock={() => handleOpenAddStock()}
+              onOpenCollectDue={() => handleOpenCollectDue()}
+            />
+          </div>
+        )}
+
+        {/* TAB 3: PROFESSIONAL DUE KHATA MANAGEMENT */}
+        {activeTab === 'due_khata' && (
+          <div className="animate-in fade-in duration-200">
+            <DueManagementLedger
+              customers={customers}
+              sales={sales}
+              dueCollections={dueCollections}
+              saleItems={saleItems}
+              onOpenCollectDue={(custGoalId) => handleOpenCollectDue(custGoalId)}
+              onOpenCustomerProfile={(custGoalId) => handleOpenCustomerProfiles(custGoalId)}
+              onOpenNewSaleForCustomer={(custGoalId) => {
+                setSelectedCustomerId(custGoalId);
+                setActiveModal('new_sale');
+              }}
+            />
+          </div>
+        )}
 
         {/* Action Modals */}
         <NewSaleModal
@@ -417,6 +606,32 @@ export const ExecutiveDashboard: React.FC = () => {
           isOpen={activeModal === 'add_category'}
           onClose={() => setActiveModal('none')}
           onSubmitCategory={handleAddCategory}
+        />
+
+        <AddCustomerModal
+          isOpen={activeModal === 'add_customer'}
+          onClose={() => setActiveModal('none')}
+          onAddCustomer={handleAddCustomer}
+        />
+
+        <CustomerProfileModal
+          isOpen={activeModal === 'customer_profile'}
+          onClose={() => setActiveModal('none')}
+          customers={customers}
+          sales={sales}
+          saleItems={saleItems}
+          dueCollections={dueCollections}
+          selectedCustomerId={selectedCustomerId}
+          onSelectCustomer={(id) => setSelectedCustomerId(id)}
+          onOpenCollectDueForCustomer={(id) => {
+            setSelectedCustomerId(id);
+            setActiveModal('collect_due');
+          }}
+          onOpenNewSaleForCustomer={(id) => {
+            setSelectedCustomerId(id);
+            setActiveModal('new_sale');
+          }}
+          onOpenAddCustomer={handleOpenAddCustomer}
         />
       </div>
     </div>

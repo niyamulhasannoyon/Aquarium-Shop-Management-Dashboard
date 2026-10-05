@@ -97,3 +97,32 @@ export interface LowStockItemView {
   selling_price: number;
   threshold: number;
 }
+
+export type TimeframePeriod = 'today' | 'this_month' | 'last_month' | 'overall' | 'custom';
+
+export interface TimeframeMetrics extends KpiSummaryMetrics {
+  period: TimeframePeriod;
+  totalSalesCount: number;
+  totalPurchasesCount: number;
+  totalDueCollectionsAmount: number;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface CombinedActivityEvent {
+  id: string;
+  type: 'sale' | 'purchase' | 'collection';
+  timestamp: number;
+  dateStr: string;
+  ref: string;
+  title: string;
+  partyName: string;
+  partyPhone?: string;
+  itemsSummary?: string;
+  totalAmount: number;
+  paidAmount: number;
+  dueAmount: number;
+  profit?: number;
+  note?: string;
+}
+

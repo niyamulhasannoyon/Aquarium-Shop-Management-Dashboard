@@ -53,7 +53,7 @@ export const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
             <input
               type="text"
               required
-              placeholder="e.g. Footwear & Shoes / Garments"
+              placeholder="e.g. Fish / Electronic Product"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-purple-500"
