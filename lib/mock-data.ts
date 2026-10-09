@@ -8,8 +8,117 @@ import {
   DueCollection,
 } from '@/types/executive';
 
-export const initialCategories: Category[] = [];
-export const initialProducts: Product[] = [];
+export const initialCategories: Category[] = [
+  { id: 1, name: 'Guppy Fish (গ্যাপি মাছ)', created_at: '2026-01-01T10:00:00Z' },
+  { id: 2, name: 'Betta & Fancy Fish (বেটা ও ফেন্সি মাছ)', created_at: '2026-01-01T10:00:00Z' },
+  { id: 3, name: 'Aquarium Fish Food (মাছের খাবার)', created_at: '2026-01-01T10:00:00Z' },
+  { id: 4, name: 'Water Care & Medicine (পানি শোধন ও ওষুধ)', created_at: '2026-01-01T10:00:00Z' },
+  { id: 5, name: 'Filters & Accessories (ফিল্টার ও এক্সেসরিজ)', created_at: '2026-01-01T10:00:00Z' },
+];
+
+export const initialProducts: Product[] = [
+  {
+    id: 1,
+    category_id: 1,
+    name: 'Dumbo Ear Red Tail Dragon Guppy (Pair / জোড়া)',
+    default_unit: 'Pair',
+    cost_price: 150.00,
+    selling_price: 250.00,
+    current_stock: 25,
+    created_at: '2026-01-01T10:00:00Z',
+  },
+  {
+    id: 2,
+    category_id: 1,
+    name: 'Full Red Albino Guppy (Pair / জোড়া)',
+    default_unit: 'Pair',
+    cost_price: 200.00,
+    selling_price: 320.00,
+    current_stock: 18,
+    created_at: '2026-01-01T10:00:00Z',
+  },
+  {
+    id: 3,
+    category_id: 1,
+    name: 'Black Prince Guppy (Pair / জোড়া)',
+    default_unit: 'Pair',
+    cost_price: 180.00,
+    selling_price: 280.00,
+    current_stock: 12,
+    created_at: '2026-01-01T10:00:00Z',
+  },
+  {
+    id: 4,
+    category_id: 2,
+    name: 'Halfmoon King Betta (Pcs / পিস)',
+    default_unit: 'Piece',
+    cost_price: 120.00,
+    selling_price: 200.00,
+    current_stock: 15,
+    created_at: '2026-01-01T10:00:00Z',
+  },
+  {
+    id: 5,
+    category_id: 2,
+    name: 'Crown Tail Fighter Betta (Pcs / পিস)',
+    default_unit: 'Piece',
+    cost_price: 90.00,
+    selling_price: 150.00,
+    current_stock: 20,
+    created_at: '2026-01-01T10:00:00Z',
+  },
+  {
+    id: 6,
+    category_id: 3,
+    name: 'Hikari Fancy Guppy Food 22g',
+    default_unit: 'Piece',
+    cost_price: 180.00,
+    selling_price: 240.00,
+    current_stock: 30,
+    created_at: '2026-01-01T10:00:00Z',
+  },
+  {
+    id: 7,
+    category_id: 3,
+    name: 'Tokyo Micro Pellets Fish Food 100g',
+    default_unit: 'Piece',
+    cost_price: 140.00,
+    selling_price: 190.00,
+    current_stock: 40,
+    created_at: '2026-01-01T10:00:00Z',
+  },
+  {
+    id: 8,
+    category_id: 4,
+    name: 'Anti-Chlorine Water Conditioner 120ml',
+    default_unit: 'Piece',
+    cost_price: 70.00,
+    selling_price: 120.00,
+    current_stock: 25,
+    created_at: '2026-01-01T10:00:00Z',
+  },
+  {
+    id: 9,
+    category_id: 4,
+    name: 'General Tonic Fish Medicine 100ml',
+    default_unit: 'Piece',
+    cost_price: 85.00,
+    selling_price: 140.00,
+    current_stock: 22,
+    created_at: '2026-01-01T10:00:00Z',
+  },
+  {
+    id: 10,
+    category_id: 5,
+    name: 'Soboo Bio Sponge Filter Medium',
+    default_unit: 'Piece',
+    cost_price: 110.00,
+    selling_price: 170.00,
+    current_stock: 15,
+    created_at: '2026-01-01T10:00:00Z',
+  },
+];
+
 export const initialPurchases: Purchase[] = [];
 export const initialCustomers: Customer[] = [];
 export const initialSales: Sale[] = [];

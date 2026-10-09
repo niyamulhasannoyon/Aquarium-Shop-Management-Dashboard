@@ -378,9 +378,6 @@ export const ExecutiveDashboard: React.FC = () => {
                 <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
                   {t('app.title')}
                 </h1>
-                <span className="text-[10px] uppercase font-bold tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                  {t('app.subtitle')}
-                </span>
               </div>
               <p className="text-xs sm:text-sm text-slate-400 font-medium">
                 {t('app.tagline')}
