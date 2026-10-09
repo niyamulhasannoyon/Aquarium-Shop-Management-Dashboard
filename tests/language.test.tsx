@@ -49,7 +49,7 @@ describe('Internationalization & Language Switch System', () => {
     );
 
     expect(screen.getByTestId('lang-val').textContent).toBe('en');
-    expect(screen.getByTestId('translated-title').textContent).toBe('Niloy Friend Shop');
+    expect(screen.getByTestId('translated-title').textContent).toBe('Aqua Place BD');
     expect(screen.getByTestId('formatted-num').textContent).toBe('12345');
   });
 
@@ -63,14 +63,14 @@ describe('Internationalization & Language Switch System', () => {
     // Switch to Bangla
     fireEvent.click(screen.getByTestId('switch-to-bn'));
     expect(screen.getByTestId('lang-val').textContent).toBe('bn');
-    expect(screen.getByTestId('translated-title').textContent).toBe('নিলয় ফ্রেন্ড শপ');
+    expect(screen.getByTestId('translated-title').textContent).toBe('অ্যাকোয়া প্লেস বিডি');
     expect(screen.getByTestId('formatted-num').textContent).toBe('১২৩৪৫');
     expect(screen.getByTestId('formatted-curr').textContent).toContain('২,৫০০');
 
     // Switch back to English
     fireEvent.click(screen.getByTestId('switch-to-en'));
     expect(screen.getByTestId('lang-val').textContent).toBe('en');
-    expect(screen.getByTestId('translated-title').textContent).toBe('Niloy Friend Shop');
+    expect(screen.getByTestId('translated-title').textContent).toBe('Aqua Place BD');
   });
 
   it('renders LanguageSwitcher pill component and switches language on button click', () => {

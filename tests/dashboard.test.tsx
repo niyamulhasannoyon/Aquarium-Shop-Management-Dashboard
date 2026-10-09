@@ -14,7 +14,7 @@ describe('ExecutiveOverviewDashboard Component', () => {
 
   it('renders the store title and dashboard header', () => {
     renderDashboard();
-    expect(screen.getByText('Niloy Friend Shop')).toBeInTheDocument();
+    expect(screen.getByText('Aqua Place BD')).toBeInTheDocument();
     expect(screen.getByText(/Smart POS & Ledger/i)).toBeInTheDocument();
   });
 
