@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { LanguageProvider } from '@/context/language-context';
+import { PasscodeGate } from '@/components/passcode-gate';
 
 export const metadata: Metadata = {
   title: 'Aqua Place BD | POS & Retail Management System',
@@ -35,7 +36,9 @@ export default function RootLayout({
     <html lang="en">
       <body className="bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-emerald-500 selection:text-white">
         <LanguageProvider>
-          {children}
+          <PasscodeGate>
+            {children}
+          </PasscodeGate>
         </LanguageProvider>
       </body>
     </html>

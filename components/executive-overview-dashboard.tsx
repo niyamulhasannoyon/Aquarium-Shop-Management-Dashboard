@@ -11,7 +11,9 @@ import {
   Calendar,
   BookOpen,
   BarChart3,
+  Lock,
 } from 'lucide-react';
+import { lockSiteSystem } from '@/components/passcode-gate';
 import {
   Category,
   Product,
@@ -388,6 +390,15 @@ export const ExecutiveDashboard: React.FC = () => {
           {/* Quick Header Actions */}
           <div className="flex items-center flex-wrap gap-2.5">
             <LanguageSwitcher />
+
+            <button
+              onClick={lockSiteSystem}
+              title={t('passcode.lockSystem')}
+              className="px-3 py-2 bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/30 rounded-xl text-xs font-semibold text-rose-300 hover:text-white flex items-center transition-all shadow-md"
+            >
+              <Lock className="w-3.5 h-3.5 sm:mr-1.5" />
+              <span className="hidden sm:inline">{t('passcode.lockSystem')}</span>
+            </button>
 
             <button
               onClick={handleOpenAddCustomer}

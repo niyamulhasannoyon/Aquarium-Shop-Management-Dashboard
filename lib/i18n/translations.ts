@@ -12,6 +12,15 @@ export const translations: Record<Language, Record<string, string>> = {
     'app.liveSystem': 'Live System Active',
     'app.tagline': 'Smart POS & Ledger System',
 
+    // Passcode Gate Security
+    'passcode.title': 'Aqua Place BD Security',
+    'passcode.subtitle': 'Enter shop passcode to unlock POS dashboard',
+    'passcode.placeholder': 'Enter Password / PIN...',
+    'passcode.unlock': 'Unlock Dashboard',
+    'passcode.incorrect': 'Incorrect passcode! Please try again.',
+    'passcode.lockSystem': 'Lock POS',
+    'passcode.hint': 'Default Passcode: 1234',
+
     // Language Switcher
     'lang.selectLanguage': 'Select Language',
     'lang.english': 'English',
@@ -219,6 +228,15 @@ export const translations: Record<Language, Record<string, string>> = {
     'app.subtitle': 'অ্যাকোয়ারিয়াম POS ও রিটেইল ম্যানেজমেন্ট সিস্টেম',
     'app.liveSystem': 'লাইভ সিস্টেম সচল',
     'app.tagline': 'স্মার্ট পয়েন্ট অব সেলস ও হিসাব খাতা',
+
+    // Passcode Gate Security
+    'passcode.title': 'অ্যাকোয়া প্লেস বিডি সিকিউরিটি',
+    'passcode.subtitle': 'পয়েন্ট অব সেলস সিস্টেমে প্রবেশের জন্য পাসওয়ার্ড দিন',
+    'passcode.placeholder': 'পাসওয়ার্ড বা পিন নম্বর লিখুন...',
+    'passcode.unlock': 'আনলক করুন',
+    'passcode.incorrect': 'ভুল পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিয়ে পুনরায় চেষ্টা করুন।',
+    'passcode.lockSystem': 'লক করুন',
+    'passcode.hint': 'ডিফল্ট পাসওয়ার্ড: 1234',
 
     // Language Switcher
     'lang.selectLanguage': 'ভাষা নির্বাচন করুন',
