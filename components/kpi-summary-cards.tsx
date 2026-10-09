@@ -10,59 +10,66 @@ import {
   Info,
 } from 'lucide-react';
 import { KpiSummaryMetrics } from '@/types/executive';
-import { formatCurrency } from '@/lib/calculations';
+import { useLanguage } from '@/context/language-context';
 
 interface KpiSummaryCardsProps {
   metrics: KpiSummaryMetrics;
 }
 
 export const KpiSummaryCards: React.FC<KpiSummaryCardsProps> = ({ metrics }) => {
+  const { t, formatCurrency } = useLanguage();
+
   const cards = [
     {
-      title: 'Total Stock Investment',
-      shortTitle: 'Stock Investment',
+      key: 'kpi.totalInvestment',
+      title: t('kpi.totalInvestment'),
+      shortTitle: t('kpi.totalInvestment'),
       amount: metrics.totalStockInvestment,
-      description: 'Sum of stock purchases',
+      description: t('kpi.totalInvestmentSub'),
       icon: Wallet,
       gradient: 'from-indigo-600/20 to-indigo-900/10 border-indigo-500/30 text-indigo-400',
       iconBg: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20',
       formula: 'Σ (purchases.quantity * unit_cost)',
     },
     {
-      title: 'Total Sales Revenue',
-      shortTitle: 'Sales Revenue',
+      key: 'kpi.totalSales',
+      title: t('kpi.totalSales'),
+      shortTitle: t('kpi.totalSales'),
       amount: metrics.totalSalesRevenue,
-      description: 'Completed sales invoices',
+      description: t('kpi.totalSalesSub'),
       icon: DollarSign,
       gradient: 'from-emerald-600/20 to-emerald-900/10 border-emerald-500/30 text-emerald-400',
       iconBg: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
       formula: 'Σ (sales.total_amount)',
     },
     {
-      title: 'Total Outstanding Due',
-      shortTitle: 'Outstanding Due',
+      key: 'kpi.totalDue',
+      title: t('kpi.totalDue'),
+      shortTitle: t('kpi.totalDue'),
       amount: metrics.totalOutstandingDue,
-      description: 'Receivable due from customers',
+      description: t('kpi.totalDueSub'),
       icon: AlertTriangle,
       gradient: 'from-amber-600/20 to-amber-900/10 border-amber-500/30 text-amber-400',
       iconBg: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
       formula: 'Σ (customers.total_due)',
     },
     {
-      title: 'Realized Net Profit',
-      shortTitle: 'Net Profit',
+      key: 'kpi.netProfit',
+      title: t('kpi.netProfit'),
+      shortTitle: t('kpi.netProfit'),
       amount: metrics.realizedNetProfit,
-      description: 'Profit margin from sales',
+      description: t('kpi.netProfitSub'),
       icon: TrendingUp,
       gradient: 'from-cyan-600/20 to-cyan-900/10 border-cyan-500/30 text-cyan-400',
       iconBg: 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20',
       formula: 'Σ (unit_price - cost_price_snapshot) * quantity',
     },
     {
-      title: 'Available Inventory Valuation',
-      shortTitle: 'Inventory Valuation',
+      key: 'kpi.inventoryValue',
+      title: t('kpi.inventoryValue'),
+      shortTitle: t('kpi.inventoryValue'),
       amount: metrics.availableInventoryValuation,
-      description: 'Valuation of current stock',
+      description: t('kpi.inventoryValueSub'),
       icon: Boxes,
       gradient: 'from-purple-600/20 to-purple-900/10 border-purple-500/30 text-purple-400',
       iconBg: 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
@@ -78,7 +85,7 @@ export const KpiSummaryCards: React.FC<KpiSummaryCardsProps> = ({ metrics }) => 
 
         return (
           <div
-            key={idx}
+            key={card.key}
             className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${card.gradient} bg-slate-900/80 border p-3.5 sm:p-5 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5 group ${
               isLastOdd ? 'col-span-2 sm:col-span-1' : ''
             }`}

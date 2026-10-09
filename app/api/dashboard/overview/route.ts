@@ -81,104 +81,20 @@ export async function GET() {
       client.release();
     }
   } catch (error: any) {
-    console.error('Database connection failed for dashboard API, returning standard mock data', error.message);
+    console.error('Database connection failed for dashboard API:', error.message);
     
-    // Graceful fallback to rich sample dataset if DB server is offline
     return NextResponse.json({
       success: true,
       isFallback: true,
       metrics: {
-        totalStockInvestment: 234600.0,
-        totalSalesRevenue: 34520.0,
-        totalOutstandingDue: 8550.0,
-        realizedNetProfit: 5485.0,
-        availableInventoryValuation: 168430.0,
+        totalStockInvestment: 0.0,
+        totalSalesRevenue: 0.0,
+        totalOutstandingDue: 0.0,
+        realizedNetProfit: 0.0,
+        availableInventoryValuation: 0.0,
       },
-      recentSales: [
-        {
-          id: 5,
-          invoice_no: 'INV-2026-005',
-          customer_name: 'Walk-in Customer',
-          total_amount: 1570.0,
-          paid_amount: 1570.0,
-          due_amount: 0.0,
-          sale_date: new Date().toISOString(),
-        },
-        {
-          id: 4,
-          invoice_no: 'INV-2026-004',
-          customer_name: 'Anika Enterprise',
-          total_amount: 6850.0,
-          paid_amount: 4000.0,
-          due_amount: 2850.0,
-          sale_date: new Date(Date.now() - 86400000).toISOString(),
-        },
-        {
-          id: 3,
-          invoice_no: 'INV-2026-003',
-          customer_name: 'Tanvir Ahmed',
-          total_amount: 3600.0,
-          paid_amount: 3600.0,
-          due_amount: 0.0,
-          sale_date: new Date(Date.now() - 172800000).toISOString(),
-        },
-        {
-          id: 2,
-          invoice_no: 'INV-2026-002',
-          customer_name: 'Karim General Trading',
-          total_amount: 4250.0,
-          paid_amount: 3050.0,
-          due_amount: 1200.0,
-          sale_date: new Date(Date.now() - 259200000).toISOString(),
-        },
-        {
-          id: 1,
-          invoice_no: 'INV-2026-001',
-          customer_name: 'Rahim Store & Bakers',
-          total_amount: 18250.0,
-          paid_amount: 13750.0,
-          due_amount: 4500.0,
-          sale_date: new Date(Date.now() - 345600000).toISOString(),
-        },
-      ],
-      lowStockItems: [
-        {
-          id: 3,
-          name: 'Gorami (গৌরামি)',
-          category_name: 'Fish',
-          current_stock: 3,
-          default_unit: 'pair',
-          cost_price: 100.0,
-          selling_price: 180.0,
-        },
-        {
-          id: 8,
-          name: 'Renbo shark (রেইনবো শার্ক)',
-          category_name: 'Fish',
-          current_stock: 4,
-          default_unit: 'pair',
-          cost_price: 130.0,
-          selling_price: 220.0,
-        },
-        {
-          id: 16,
-          name: 'Automatic Water Heater 100W (হিটার)',
-          category_name: 'Electronic Product',
-          current_stock: 2,
-          default_unit: 'piece',
-          cost_price: 400.0,
-          selling_price: 650.0,
-        },
-        {
-          id: 18,
-          name: 'Aquarium Wave Maker Pump (ওয়েভ মেকার)',
-          category_name: 'Electronic Product',
-          current_stock: 3,
-          default_unit: 'piece',
-          cost_price: 600.0,
-          selling_price: 950.0,
-        },
-      ],
+      recentSales: [],
+      lowStockItems: [],
     });
   }
 }

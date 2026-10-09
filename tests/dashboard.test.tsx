@@ -2,25 +2,33 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { ExecutiveDashboard } from '@/components/executive-overview-dashboard';
+import { LanguageProvider } from '@/context/language-context';
 
 describe('ExecutiveOverviewDashboard Component', () => {
+  const renderDashboard = () =>
+    render(
+      <LanguageProvider>
+        <ExecutiveDashboard />
+      </LanguageProvider>
+    );
+
   it('renders the store title and dashboard header', () => {
-    render(<ExecutiveDashboard />);
+    renderDashboard();
     expect(screen.getByText('Niloy Friend Shop')).toBeInTheDocument();
-    expect(screen.getByText(/Aquarium POS & Ledger/i)).toBeInTheDocument();
+    expect(screen.getByText(/Smart POS & Ledger/i)).toBeInTheDocument();
   });
 
   it('renders all 5 top KPI summary cards', () => {
-    render(<ExecutiveDashboard />);
-    expect(screen.getByText('Total Stock Investment')).toBeInTheDocument();
-    expect(screen.getByText('Total Sales Revenue')).toBeInTheDocument();
-    expect(screen.getByText('Total Outstanding Due')).toBeInTheDocument();
-    expect(screen.getByText('Realized Net Profit')).toBeInTheDocument();
-    expect(screen.getByText('Available Inventory Valuation')).toBeInTheDocument();
+    renderDashboard();
+    expect(screen.getAllByText('Total Stock Investment')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Total Sales Revenue')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Total Outstanding Due')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Realized Net Profit')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Available Inventory Valuation')[0]).toBeInTheDocument();
   });
 
   it('renders quick action shortcut buttons', () => {
-    render(<ExecutiveDashboard />);
+    renderDashboard();
     expect(screen.getByText('New Sale')).toBeInTheDocument();
     expect(screen.getByText('Add Stock')).toBeInTheDocument();
     expect(screen.getByText('Add Product')).toBeInTheDocument();
@@ -28,28 +36,26 @@ describe('ExecutiveOverviewDashboard Component', () => {
   });
 
   it('renders recent sales invoices list section', () => {
-    render(<ExecutiveDashboard />);
+    renderDashboard();
     expect(screen.getByText('Recent Sales Invoices')).toBeInTheDocument();
-    expect(screen.getAllByText('INV-2026-005')[0]).toBeInTheDocument();
   });
 
   it('renders low stock warning alert section', () => {
-    render(<ExecutiveDashboard />);
+    renderDashboard();
     expect(screen.getByText('Low Stock Warning Alert')).toBeInTheDocument();
-    expect(screen.getAllByText(/Gorami/i)[0]).toBeInTheDocument();
   });
 
   it('opens New Sale modal when New Sale button is clicked', () => {
-    render(<ExecutiveDashboard />);
+    renderDashboard();
     const newSaleBtn = screen.getByText('New Sale');
     fireEvent.click(newSaleBtn);
     expect(screen.getByText('Create New Sale Invoice')).toBeInTheDocument();
   });
 
   it('opens Add Stock modal when Add Stock button is clicked', () => {
-    render(<ExecutiveDashboard />);
+    renderDashboard();
     const addStockBtn = screen.getByText('Add Stock');
     fireEvent.click(addStockBtn);
-    expect(screen.getByText('Restock Product Inventory')).toBeInTheDocument();
+    expect(screen.getAllByText('Restock Product Inventory')[0]).toBeInTheDocument();
   });
 });

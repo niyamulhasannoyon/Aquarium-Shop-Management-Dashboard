@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ShoppingBag, PackagePlus, PlusCircle, CreditCard, Sparkles, UserPlus, Users } from 'lucide-react';
+import { useLanguage } from '@/context/language-context';
 
 interface QuickActionsProps {
   onOpenNewSale: () => void;
@@ -20,45 +21,47 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
   onOpenAddCustomer,
   onOpenCustomerProfiles,
 }) => {
+  const { t } = useLanguage();
+
   const actions = [
     {
-      label: 'New Sale',
-      subtitle: 'Create customer invoice',
+      label: t('quickActions.newSale'),
+      subtitle: t('quickActions.newSaleDesc'),
       icon: ShoppingBag,
       onClick: onOpenNewSale,
       bg: 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/30',
       badge: 'POS',
     },
     {
-      label: 'Add Stock',
-      subtitle: 'Receive supplier shipment',
+      label: t('quickActions.addStock'),
+      subtitle: t('quickActions.addStockDesc'),
       icon: PackagePlus,
       onClick: onOpenAddStock,
       bg: 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-900/30',
-      badge: 'Purchase',
+      badge: 'Stock',
     },
     {
-      label: 'Add Product',
-      subtitle: 'New catalog entry',
+      label: t('quickActions.addProduct'),
+      subtitle: t('quickActions.addProductDesc'),
       icon: PlusCircle,
       onClick: onOpenAddProduct,
       bg: 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/30',
-      badge: 'Catalog',
+      badge: 'Item',
     },
     {
-      label: 'Collect Due',
-      subtitle: 'Record customer payment',
+      label: t('quickActions.collectDue'),
+      subtitle: t('quickActions.collectDueDesc'),
       icon: CreditCard,
       onClick: onOpenCollectDue,
       bg: 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-900/30',
-      badge: 'Receivable',
+      badge: 'Due',
     },
   ];
 
   if (onOpenAddCustomer) {
     actions.push({
-      label: 'New Customer',
-      subtitle: 'Register client profile',
+      label: t('quickActions.addCustomer'),
+      subtitle: t('quickActions.addCustomerDesc'),
       icon: UserPlus,
       onClick: onOpenAddCustomer,
       bg: 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-900/30',
@@ -68,12 +71,12 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
 
   if (onOpenCustomerProfiles) {
     actions.push({
-      label: 'Customer Profiles',
-      subtitle: 'Ledgers & statement history',
+      label: t('modal.customerProfile.title'),
+      subtitle: t('khata.customerList'),
       icon: Users,
       onClick: onOpenCustomerProfiles,
       bg: 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-900/30',
-      badge: 'Directory',
+      badge: 'Khata',
     });
   }
 
@@ -85,10 +88,9 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
             <Sparkles className="w-4 h-4" />
           </div>
           <h2 className="text-sm sm:text-base font-semibold text-white tracking-wide">
-            Quick Action Shortcuts
+            {t('quickActions.title')}
           </h2>
         </div>
-        <span className="text-[11px] sm:text-xs text-slate-400 hidden xs:inline">Jump directly to common tasks</span>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">

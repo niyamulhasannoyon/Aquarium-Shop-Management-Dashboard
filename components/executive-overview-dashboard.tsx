@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
+import Image from 'next/image';
 import {
   Store,
-  RefreshCw,
   Clock,
   Layers,
   UserPlus,
@@ -49,8 +49,12 @@ import { CollectDueModal } from '@/components/modals/collect-due-modal';
 import { AddCategoryModal } from '@/components/modals/add-category-modal';
 import { AddCustomerModal } from '@/components/modals/add-customer-modal';
 import { CustomerProfileModal } from '@/components/modals/customer-profile-modal';
+import { LanguageSwitcher } from '@/components/language-switcher';
+import { useLanguage } from '@/context/language-context';
 
 export const ExecutiveDashboard: React.FC = () => {
+  const { t, formatNumber } = useLanguage();
+
   // Navigation Tab State
   const [activeTab, setActiveTab] = useState<'overview' | 'daily_ledger' | 'due_khata'>('overview');
   const [overviewTimeframe, setOverviewTimeframe] = useState<TimeframePeriod>('overall');
@@ -352,51 +356,48 @@ export const ExecutiveDashboard: React.FC = () => {
     );
   };
 
-  // Reset Demo State
-  const handleResetDemoData = () => {
-    setCategories(initialCategories);
-    setProducts(initialProducts);
-    setPurchases(initialPurchases);
-    setCustomers(initialCustomers);
-    setSales(initialSales);
-    setSaleItems(initialSaleItems);
-    setDueCollections(initialDueCollections);
-    setSelectedCustomerId(initialCustomers[0]?.id || null);
-  };
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-6 font-sans">
       <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
         
         {/* Top Header & Branding Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-indigo-600 text-white shadow-lg shadow-emerald-900/30">
-              <Store className="w-6 h-6" />
+          <div className="flex items-center space-x-3.5">
+            <div className="relative p-1.5 rounded-2xl bg-gradient-to-tr from-emerald-500/20 via-teal-500/20 to-indigo-500/20 border border-emerald-500/30 shadow-lg shadow-emerald-950/40 flex items-center justify-center shrink-0">
+              <Image
+                src="/logo-transparent.png"
+                alt="Aqua Place BD Logo"
+                width={52}
+                height={52}
+                className="object-contain hover:scale-105 transition-transform duration-300 drop-shadow-md"
+                priority
+              />
             </div>
             <div>
               <div className="flex items-center space-x-2">
                 <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-                  Niloy Friend Shop
+                  {t('app.title')}
                 </h1>
                 <span className="text-[10px] uppercase font-bold tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                  Aquarium POS & Ledger
+                  {t('app.subtitle')}
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-slate-400 font-medium">
-                Aquarium Fish & Electronics Retail POS, Daily Hiseb & Due Ledger System
+                {t('app.tagline')}
               </p>
             </div>
           </div>
 
           {/* Quick Header Actions */}
           <div className="flex items-center flex-wrap gap-2.5">
+            <LanguageSwitcher />
+
             <button
               onClick={handleOpenAddCustomer}
               className="px-3.5 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-xl text-xs font-semibold text-purple-300 hover:text-white flex items-center transition-all shadow-md"
             >
               <UserPlus className="w-3.5 h-3.5 mr-1.5" />
-              + Add Customer
+              + {t('quickActions.addCustomer')}
             </button>
 
             <button
@@ -404,20 +405,12 @@ export const ExecutiveDashboard: React.FC = () => {
               className="px-3.5 py-2 bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 rounded-xl text-xs font-semibold text-cyan-300 hover:text-white flex items-center transition-all shadow-md"
             >
               <Users className="w-3.5 h-3.5 mr-1.5" />
-              Customer Profiles ({customers.length})
-            </button>
-
-            <button
-              onClick={handleResetDemoData}
-              className="px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 flex items-center transition-colors"
-            >
-              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-              Reset Demo
+              {t('modal.customerProfile.title')} ({formatNumber(customers.length)})
             </button>
 
             <div className="px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-slate-300 flex items-center">
               <Layers className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
-              Products: <strong className="text-white ml-1">{products.length}</strong>
+              Items: <strong className="text-white ml-1">{formatNumber(products.length)}</strong>
             </div>
           </div>
         </div>
@@ -433,7 +426,7 @@ export const ExecutiveDashboard: React.FC = () => {
             }`}
           >
             <BarChart3 className="w-4 h-4" />
-            <span>📊 ওভারভিউ সারসংক্ষেপ</span>
+            <span>📊 {t('nav.overview')}</span>
           </button>
 
           <button
@@ -445,7 +438,7 @@ export const ExecutiveDashboard: React.FC = () => {
             }`}
           >
             <Calendar className="w-4 h-4" />
-            <span>🗓️ দৈনিক ও মাসিক লেনদেন খাতা</span>
+            <span>🗓️ {t('nav.dailyLedger')}</span>
           </button>
 
           <button
@@ -457,7 +450,7 @@ export const ExecutiveDashboard: React.FC = () => {
             }`}
           >
             <BookOpen className="w-4 h-4" />
-            <span>📖 প্রফেশনাল বাকির খাতা</span>
+            <span>📖 {t('nav.dueKhata')}</span>
           </button>
         </div>
 
@@ -468,7 +461,7 @@ export const ExecutiveDashboard: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-3.5 rounded-2xl">
               <div className="flex items-center space-x-2 text-xs font-semibold text-slate-300">
                 <Clock className="w-4 h-4 text-emerald-400" />
-                <span>সময়সীমা অনুযায়ী হিসাব দেখুন (Select Timeframe):</span>
+                <span>{t('timeframe.label')}</span>
               </div>
               <div className="flex items-center space-x-1.5">
                 <button
@@ -479,7 +472,7 @@ export const ExecutiveDashboard: React.FC = () => {
                       : 'bg-slate-800 text-slate-400 hover:text-white'
                   }`}
                 >
-                  আজকের হিসাব (Today)
+                  {t('timeframe.today')}
                 </button>
                 <button
                   onClick={() => setOverviewTimeframe('this_month')}
@@ -489,7 +482,7 @@ export const ExecutiveDashboard: React.FC = () => {
                       : 'bg-slate-800 text-slate-400 hover:text-white'
                   }`}
                 >
-                  এই মাসের হিসাব (This Month)
+                  {t('timeframe.this_month')}
                 </button>
                 <button
                   onClick={() => setOverviewTimeframe('overall')}
@@ -499,7 +492,7 @@ export const ExecutiveDashboard: React.FC = () => {
                       : 'bg-slate-800 text-slate-400 hover:text-white'
                   }`}
                 >
-                  সর্বমোট (Overall)
+                  {t('timeframe.overall')}
                 </button>
               </div>
             </div>

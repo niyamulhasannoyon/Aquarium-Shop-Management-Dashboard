@@ -21,6 +21,8 @@ import {
 import { Customer, Sale, DueCollection, SaleItem } from '@/types/executive';
 import { formatCurrency } from '@/lib/calculations';
 
+import { useLanguage } from '@/context/language-context';
+
 interface DueManagementLedgerProps {
   customers: Customer[];
   sales: Sale[];
@@ -40,6 +42,7 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
   onOpenCustomerProfile,
   onOpenNewSaleForCustomer,
 }) => {
+  const { t, formatCurrency, formatNumber, formatDate } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [dueFilter, setDueFilter] = useState<'all' | 'due_only' | 'cleared'>('due_only');
 
@@ -93,7 +96,7 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
     else if (!digits.startsWith('88')) digits = `880${digits}`;
 
     const text = encodeURIComponent(
-      `প্রিয় ${name}, নীলয় ফ্রেন্ড শপে (Niloy Friend Shop) আপনার বকেয়া বাকি টাকার পরিমাণ ৳${amount}। অনুরোধপূর্বক বকেয়া টাকা পরিশোধ করুন। ধন্যবাদ!`
+      `প্রিয় ${name}, অ্যাকোয়া প্লেস বিডিতে (Aqua Place BD) আপনার বকেয়া বাকি টাকার পরিমাণ ৳${amount}। অনুরোধপূর্বক বকেয়া টাকা পরিশোধ করুন। ধন্যবাদ!`
     );
     return `https://wa.me/${digits}?text=${text}`;
   };

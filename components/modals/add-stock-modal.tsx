@@ -20,6 +20,8 @@ interface AddStockModalProps {
   }) => void;
 }
 
+import { useLanguage } from '@/context/language-context';
+
 export const AddStockModal: React.FC<AddStockModalProps> = ({
   isOpen,
   onClose,
@@ -27,6 +29,7 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
   initialProductId,
   onSubmitStock,
 }) => {
+  const { t, formatCurrency, formatNumber } = useLanguage();
   const [selectedProductId, setSelectedProductId] = useState<number>(
     initialProductId || products[0]?.id || 1
   );

@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
 export async function POST(request: NextRequest) {
-  const client = await pool.connect();
+  let client;
   
   try {
+    client = await pool.connect();
     const body = await request.json();
     const {
       isWalkIn,
@@ -191,13 +192,17 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    await client.query('ROLLBACK');
+    if (client) {
+      await client.query('ROLLBACK').catch(() => {});
+    }
     console.error('Error processing sale:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'An error occurred during checkout.' },
       { status: 500 }
     );
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }

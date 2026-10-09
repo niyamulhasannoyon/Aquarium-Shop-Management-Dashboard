@@ -32,6 +32,8 @@ import {
   isDateInTimeframe,
 } from '@/lib/calculations';
 
+import { useLanguage } from '@/context/language-context';
+
 interface DailyActivityLedgerProps {
   sales: Sale[];
   purchases: Purchase[];
@@ -55,6 +57,7 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
   onOpenAddStock,
   onOpenCollectDue,
 }) => {
+  const { t, formatCurrency, formatNumber, formatDate } = useLanguage();
   const [selectedTimeframe, setSelectedTimeframe] = useState<TimeframePeriod>('overall');
   const [selectedType, setSelectedType] = useState<'all' | 'sale' | 'purchase' | 'collection'>('all');
   const [searchQuery, setSearchQuery] = useState('');

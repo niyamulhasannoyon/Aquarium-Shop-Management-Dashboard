@@ -3,7 +3,7 @@
 import React from 'react';
 import { Receipt, Calendar, User, ArrowUpRight, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { RecentSaleView } from '@/types/executive';
-import { formatCurrency } from '@/lib/calculations';
+import { useLanguage } from '@/context/language-context';
 
 interface RecentSalesListProps {
   sales: RecentSaleView[];
@@ -11,43 +11,31 @@ interface RecentSalesListProps {
 }
 
 export const RecentSalesList: React.FC<RecentSalesListProps> = ({ sales, onSelectCustomer }) => {
+  const { t, formatCurrency, formatDate } = useLanguage();
+
   const getBadge = (status: 'paid' | 'partial' | 'due') => {
     switch (status) {
       case 'paid':
         return (
           <span className="inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
             <CheckCircle2 className="w-3 h-3 mr-1" />
-            Paid
+            {t('status.paid')}
           </span>
         );
       case 'partial':
         return (
           <span className="inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/30">
             <Clock className="w-3 h-3 mr-1" />
-            Partial
+            {t('status.partial')}
           </span>
         );
       case 'due':
         return (
           <span className="inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/30">
             <AlertCircle className="w-3 h-3 mr-1" />
-            Due
+            {t('status.due')}
           </span>
         );
-    }
-  };
-
-  const formatDate = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      return dateStr;
     }
   };
 
@@ -60,20 +48,20 @@ export const RecentSalesList: React.FC<RecentSalesListProps> = ({ sales, onSelec
           </div>
           <div>
             <h3 className="text-sm sm:text-base font-semibold text-white tracking-wide">
-              Recent Sales Invoices
+              {t('sections.recentSales')}
             </h3>
-            <p className="text-[11px] sm:text-xs text-slate-400">Last 5 generated sales transactions</p>
+            <p className="text-[11px] sm:text-xs text-slate-400">{t('sections.recentSalesSub')}</p>
           </div>
         </div>
         <span className="text-[10px] sm:text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border border-emerald-500/20 font-medium">
-          Live Feed
+          {t('app.liveSystem')}
         </span>
       </div>
 
       {sales.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-8 text-center text-slate-500">
           <Receipt className="w-8 h-8 sm:w-10 sm:h-10 mb-2 opacity-40" />
-          <p className="text-xs sm:text-sm">No sales invoices recorded yet.</p>
+          <p className="text-xs sm:text-sm">{t('sections.noData')}</p>
         </div>
       ) : (
         <>
@@ -114,7 +102,7 @@ export const RecentSalesList: React.FC<RecentSalesListProps> = ({ sales, onSelec
                   </span>
                   {sale.due_amount > 0 && (
                     <span className="text-rose-400 font-semibold">
-                      Due: {formatCurrency(sale.due_amount)}
+                      {t('status.due')}: {formatCurrency(sale.due_amount)}
                     </span>
                   )}
                 </div>
@@ -127,10 +115,10 @@ export const RecentSalesList: React.FC<RecentSalesListProps> = ({ sales, onSelec
             <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800/80">
-                  <th className="py-2.5 px-3">Invoice & Customer</th>
-                  <th className="py-2.5 px-3">Date</th>
-                  <th className="py-2.5 px-3 text-right">Amount</th>
-                  <th className="py-2.5 px-3 text-center">Status</th>
+                  <th className="py-2.5 px-3">{t('table.invoiceNo')} & {t('table.customer')}</th>
+                  <th className="py-2.5 px-3">{t('table.date')}</th>
+                  <th className="py-2.5 px-3 text-right">{t('table.totalAmount')}</th>
+                  <th className="py-2.5 px-3 text-center">{t('table.paymentStatus')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
@@ -168,7 +156,7 @@ export const RecentSalesList: React.FC<RecentSalesListProps> = ({ sales, onSelec
                       <div>{formatCurrency(sale.total_amount)}</div>
                       {sale.due_amount > 0 && (
                         <div className="text-[11px] text-rose-400 font-normal">
-                          Due: {formatCurrency(sale.due_amount)}
+                          {t('status.due')}: {formatCurrency(sale.due_amount)}
                         </div>
                       )}
                     </td>

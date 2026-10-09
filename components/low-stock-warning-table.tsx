@@ -3,7 +3,7 @@
 import React from 'react';
 import { AlertOctagon, PackageCheck, ShieldAlert, ArrowRight } from 'lucide-react';
 import { LowStockItemView } from '@/types/executive';
-import { formatCurrency } from '@/lib/calculations';
+import { useLanguage } from '@/context/language-context';
 
 interface LowStockWarningTableProps {
   lowStockItems: LowStockItemView[];
@@ -14,6 +14,8 @@ export const LowStockWarningTable: React.FC<LowStockWarningTableProps> = ({
   lowStockItems,
   onRestockItem,
 }) => {
+  const { t, formatCurrency, formatNumber } = useLanguage();
+
   return (
     <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 backdrop-blur-md shadow-lg flex flex-col h-full">
       <div className="flex items-center justify-between mb-3 sm:mb-4 pb-3 border-b border-slate-800">
@@ -23,13 +25,13 @@ export const LowStockWarningTable: React.FC<LowStockWarningTableProps> = ({
           </div>
           <div>
             <h3 className="text-sm sm:text-base font-semibold text-white tracking-wide">
-              Low Stock Warning Alert
+              {t('sections.lowStock')}
             </h3>
-            <p className="text-[11px] sm:text-xs text-slate-400">Products requiring inventory replenishment</p>
+            <p className="text-[11px] sm:text-xs text-slate-400">{t('sections.lowStockSub')}</p>
           </div>
         </div>
         <span className="text-[10px] sm:text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border border-amber-500/20 font-semibold">
-          {lowStockItems.length} Low
+          {formatNumber(lowStockItems.length)} {t('status.warning')}
         </span>
       </div>
 
@@ -48,8 +50,8 @@ export const LowStockWarningTable: React.FC<LowStockWarningTableProps> = ({
               const joraCount = (item.current_stock / 2).toFixed(1).replace(/\.0$/, '');
               const isPieceOrPair = ['piece', 'pcs', 'jora', 'pair'].includes((item.default_unit || '').toLowerCase());
               const stockLabel = isPieceOrPair
-                ? `${item.current_stock} Pcs (${joraCount} Jora / জোড়া)`
-                : `${item.current_stock} ${item.default_unit}s`;
+                ? `${formatNumber(item.current_stock)} Pcs (${formatNumber(joraCount)} Jora / জোড়া)`
+                : `${formatNumber(item.current_stock)} ${item.default_unit}s`;
 
               return (
                 <div
@@ -85,7 +87,7 @@ export const LowStockWarningTable: React.FC<LowStockWarningTableProps> = ({
                         onClick={() => onRestockItem(item.id)}
                         className="inline-flex items-center text-xs font-semibold text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 px-3 py-1 rounded-lg border border-indigo-500/20 active:scale-95 transition-all"
                       >
-                        Restock
+                        {t('btn.restock')}
                         <ArrowRight className="w-3 h-3 ml-1" />
                       </button>
                     )}
@@ -100,10 +102,10 @@ export const LowStockWarningTable: React.FC<LowStockWarningTableProps> = ({
             <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800/80">
-                  <th className="py-2.5 px-3">Product Name & Category</th>
-                  <th className="py-2.5 px-3 text-center">Remaining Stock</th>
-                  <th className="py-2.5 px-3 text-right">Selling Price</th>
-                  <th className="py-2.5 px-3 text-right">Action</th>
+                  <th className="py-2.5 px-3">{t('table.productName')} & {t('table.category')}</th>
+                  <th className="py-2.5 px-3 text-center">{t('table.currentStock')}</th>
+                  <th className="py-2.5 px-3 text-right">{t('table.sellingPrice')}</th>
+                  <th className="py-2.5 px-3 text-right">{t('table.action')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
@@ -112,8 +114,8 @@ export const LowStockWarningTable: React.FC<LowStockWarningTableProps> = ({
                   const joraCount = (item.current_stock / 2).toFixed(1).replace(/\.0$/, '');
                   const isPieceOrPair = ['piece', 'pcs', 'jora', 'pair'].includes((item.default_unit || '').toLowerCase());
                   const stockLabel = isPieceOrPair
-                    ? `${item.current_stock} Pcs (${joraCount} Jora / জোড়া)`
-                    : `${item.current_stock} ${item.default_unit}s`;
+                    ? `${formatNumber(item.current_stock)} Pcs (${formatNumber(joraCount)} Jora / জোড়া)`
+                    : `${formatNumber(item.current_stock)} ${item.default_unit}s`;
 
                   return (
                     <tr
@@ -154,7 +156,7 @@ export const LowStockWarningTable: React.FC<LowStockWarningTableProps> = ({
                             onClick={() => onRestockItem(item.id)}
                             className="inline-flex items-center text-xs font-medium text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 px-2.5 py-1 rounded-lg border border-indigo-500/20 transition-all"
                           >
-                            Restock
+                            {t('btn.restock')}
                             <ArrowRight className="w-3 h-3 ml-1" />
                           </button>
                         )}

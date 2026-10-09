@@ -34,6 +34,8 @@ interface CartRow {
   unit_price: number;
 }
 
+import { useLanguage } from '@/context/language-context';
+
 export const NewSaleModal: React.FC<NewSaleModalProps> = ({
   isOpen,
   onClose,
@@ -41,6 +43,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
   products,
   onSubmitSale,
 }) => {
+  const { t, formatCurrency, formatNumber } = useLanguage();
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('walk-in');
   const [cart, setCart] = useState<CartRow[]>([
     {
