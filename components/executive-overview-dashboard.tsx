@@ -423,7 +423,7 @@ export const ExecutiveDashboard: React.FC = () => {
             }`}
           >
             <BarChart3 className="w-4 h-4" />
-            <span>📊 {t('nav.overview')}</span>
+            <span>{t('nav.overview')}</span>
           </button>
 
           <button
@@ -435,7 +435,7 @@ export const ExecutiveDashboard: React.FC = () => {
             }`}
           >
             <Calendar className="w-4 h-4" />
-            <span>🗓️ {t('nav.dailyLedger')}</span>
+            <span>{t('nav.dailyLedger')}</span>
           </button>
 
           <button
@@ -447,7 +447,7 @@ export const ExecutiveDashboard: React.FC = () => {
             }`}
           >
             <BookOpen className="w-4 h-4" />
-            <span>📖 {t('nav.dueKhata')}</span>
+            <span>{t('nav.dueKhata')}</span>
           </button>
         </div>
 
