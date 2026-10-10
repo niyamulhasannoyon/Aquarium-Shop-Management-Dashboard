@@ -8,13 +8,15 @@ import { useLanguage } from '@/context/language-context';
 interface LowStockWarningTableProps {
   lowStockItems: LowStockItemView[];
   onRestockItem?: (productId: number) => void;
+  onViewAllProducts?: () => void;
 }
 
 export const LowStockWarningTable: React.FC<LowStockWarningTableProps> = ({
   lowStockItems,
   onRestockItem,
+  onViewAllProducts,
 }) => {
-  const { t, formatCurrency, formatNumber } = useLanguage();
+  const { t, formatCurrency, formatNumber, language } = useLanguage();
 
   return (
     <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 backdrop-blur-md shadow-lg flex flex-col h-full">
@@ -30,16 +32,31 @@ export const LowStockWarningTable: React.FC<LowStockWarningTableProps> = ({
             <p className="text-[11px] sm:text-xs text-slate-400">{t('sections.lowStockSub')}</p>
           </div>
         </div>
-        <span className="text-[10px] sm:text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border border-amber-500/20 font-semibold">
-          {formatNumber(lowStockItems.length)} {t('status.warning')}
-        </span>
+        <div className="flex items-center space-x-2">
+          {onViewAllProducts && (
+            <button
+              onClick={onViewAllProducts}
+              className="text-[11px] text-teal-400 hover:text-teal-300 font-semibold flex items-center hover:underline"
+            >
+              <span>{t('sections.viewAll')}</span>
+              <ArrowRight className="w-3 h-3 ml-0.5" />
+            </button>
+          )}
+          <span className="text-[10px] sm:text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border border-amber-500/20 font-semibold">
+            {formatNumber(lowStockItems.length)} {t('status.warning')}
+          </span>
+        </div>
       </div>
 
       {lowStockItems.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-8 text-center text-slate-500">
           <PackageCheck className="w-8 h-8 sm:w-10 sm:h-10 mb-2 text-emerald-400 opacity-60" />
-          <p className="text-xs sm:text-sm text-emerald-300 font-medium">All inventory levels are healthy!</p>
-          <p className="text-[11px] text-slate-500 mt-1">No products are below threshold (&le; 10 units).</p>
+          <p className="text-xs sm:text-sm text-emerald-300 font-medium">
+            {language === 'bn' ? 'সকল পণ্যের স্টক সন্তোষজনক!' : 'All inventory levels are healthy!'}
+          </p>
+          <p className="text-[11px] text-slate-500 mt-1">
+            {language === 'bn' ? 'কোন পণ্য সতর্কসীমার নিচে নেই।' : 'No products are below threshold (≤ 10 units).'}
+          </p>
         </div>
       ) : (
         <>
@@ -49,8 +66,10 @@ export const LowStockWarningTable: React.FC<LowStockWarningTableProps> = ({
               const isCritical = item.current_stock <= 5;
               const joraCount = (item.current_stock / 2).toFixed(1).replace(/\.0$/, '');
               const isPieceOrPair = ['piece', 'pcs', 'jora', 'pair'].includes((item.default_unit || '').toLowerCase());
+              const unitPairLabel = language === 'bn' ? 'জোড়া' : 'Pair';
+              const unitPcsLabel = language === 'bn' ? 'পিস' : 'Pcs';
               const stockLabel = isPieceOrPair
-                ? `${formatNumber(item.current_stock)} Pcs (${formatNumber(joraCount)} Jora / জোড়া)`
+                ? `${formatNumber(item.current_stock)} ${unitPcsLabel} (${formatNumber(joraCount)} ${unitPairLabel})`
                 : `${formatNumber(item.current_stock)} ${item.default_unit}s`;
 
               return (
@@ -113,8 +132,10 @@ export const LowStockWarningTable: React.FC<LowStockWarningTableProps> = ({
                   const isCritical = item.current_stock <= 5;
                   const joraCount = (item.current_stock / 2).toFixed(1).replace(/\.0$/, '');
                   const isPieceOrPair = ['piece', 'pcs', 'jora', 'pair'].includes((item.default_unit || '').toLowerCase());
+                  const unitPairLabel = language === 'bn' ? 'জোড়া' : 'Pair';
+                  const unitPcsLabel = language === 'bn' ? 'পিস' : 'Pcs';
                   const stockLabel = isPieceOrPair
-                    ? `${formatNumber(item.current_stock)} Pcs (${formatNumber(joraCount)} Jora / জোড়া)`
+                    ? `${formatNumber(item.current_stock)} ${unitPcsLabel} (${formatNumber(joraCount)} ${unitPairLabel})`
                     : `${formatNumber(item.current_stock)} ${item.default_unit}s`;
 
                   return (

@@ -16,7 +16,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     default_unit: 'Pair',
     cost_price: 150.00,
     selling_price: 250.00,
-    current_stock: 25,
+    current_stock: 0,
     created_at: '2026-01-01T10:00:00Z',
   },
   {
@@ -26,7 +26,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     default_unit: 'Pair',
     cost_price: 200.00,
     selling_price: 320.00,
-    current_stock: 18,
+    current_stock: 0,
     created_at: '2026-01-01T10:00:00Z',
   },
   {
@@ -36,7 +36,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     default_unit: 'Pair',
     cost_price: 180.00,
     selling_price: 280.00,
-    current_stock: 12,
+    current_stock: 0,
     created_at: '2026-01-01T10:00:00Z',
   },
   {
@@ -46,7 +46,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     default_unit: 'Piece',
     cost_price: 120.00,
     selling_price: 200.00,
-    current_stock: 15,
+    current_stock: 0,
     created_at: '2026-01-01T10:00:00Z',
   },
   {
@@ -56,7 +56,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     default_unit: 'Piece',
     cost_price: 90.00,
     selling_price: 150.00,
-    current_stock: 20,
+    current_stock: 0,
     created_at: '2026-01-01T10:00:00Z',
   },
   {
@@ -66,7 +66,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     default_unit: 'Piece',
     cost_price: 180.00,
     selling_price: 240.00,
-    current_stock: 30,
+    current_stock: 0,
     created_at: '2026-01-01T10:00:00Z',
   },
   {
@@ -76,7 +76,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     default_unit: 'Piece',
     cost_price: 140.00,
     selling_price: 190.00,
-    current_stock: 40,
+    current_stock: 0,
     created_at: '2026-01-01T10:00:00Z',
   },
   {
@@ -86,7 +86,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     default_unit: 'Piece',
     cost_price: 70.00,
     selling_price: 120.00,
-    current_stock: 25,
+    current_stock: 0,
     created_at: '2026-01-01T10:00:00Z',
   },
   {
@@ -96,7 +96,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     default_unit: 'Piece',
     cost_price: 85.00,
     selling_price: 140.00,
-    current_stock: 22,
+    current_stock: 0,
     created_at: '2026-01-01T10:00:00Z',
   },
   {
@@ -106,7 +106,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     default_unit: 'Piece',
     cost_price: 110.00,
     selling_price: 170.00,
-    current_stock: 15,
+    current_stock: 0,
     created_at: '2026-01-01T10:00:00Z',
   },
 ];

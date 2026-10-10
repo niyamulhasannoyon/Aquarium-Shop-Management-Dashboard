@@ -38,54 +38,46 @@ export async function POST(request: NextRequest) {
     await client.query('BEGIN');
 
     let finalCustomerId: number | null = null;
-    let customerName = 'Walk-in Customer';
+    let customerName = 'General Customer';
     let customerPhone = '';
 
-    if (isWalkIn) {
-      if (calculatedDue > 0) {
-        if (!walkInName || !walkInPhone || !walkInName.trim() || !walkInPhone.trim()) {
-          await client.query('ROLLBACK');
-          return NextResponse.json(
-            { success: false, error: 'Customer Name and Phone are required when Walk-in sale has due.' },
-            { status: 400 }
-          );
-        }
+    const providedName = (walkInName || body.customerName || body.new_customer?.name || '').trim();
+    const providedPhone = (walkInPhone || body.customerPhone || body.new_customer?.phone || '').trim();
 
-        customerName = walkInName.trim();
-        customerPhone = walkInPhone.trim();
-
-        // Check if existing customer matches phone number
-        const existingCustRes = await client.query(
-          `SELECT id, name FROM customers WHERE phone = $1 LIMIT 1`,
-          [customerPhone]
-        );
-
-        if (existingCustRes.rows.length > 0) {
-          finalCustomerId = existingCustRes.rows[0].id;
-          customerName = existingCustRes.rows[0].name;
-        } else {
-          // Insert new customer
-          const newCustRes = await client.query(
-            `INSERT INTO customers (name, phone) VALUES ($1, $2) RETURNING id`,
-            [customerName, customerPhone]
-          );
-          finalCustomerId = newCustRes.rows[0].id;
-        }
-      }
-    } else {
-      if (!customerId) {
-        await client.query('ROLLBACK');
-        return NextResponse.json(
-          { success: false, error: 'Please select an existing customer or switch to Walk-in Customer.' },
-          { status: 400 }
-        );
-      }
+    if (customerId) {
       finalCustomerId = Number(customerId);
       const custRes = await client.query(`SELECT name, phone FROM customers WHERE id = $1`, [finalCustomerId]);
       if (custRes.rows.length > 0) {
         customerName = custRes.rows[0].name;
         customerPhone = custRes.rows[0].phone;
       }
+    } else if (providedName) {
+      customerName = providedName;
+      customerPhone = providedPhone;
+
+      // Check if existing customer matches name or phone number
+      const existingCustRes = await client.query(
+        `SELECT id, name FROM customers WHERE LOWER(name) = LOWER($1) OR (phone != '' AND phone = $2) LIMIT 1`,
+        [customerName, customerPhone]
+      );
+
+      if (existingCustRes.rows.length > 0) {
+        finalCustomerId = existingCustRes.rows[0].id;
+        customerName = existingCustRes.rows[0].name;
+      } else {
+        // Automatically insert new customer
+        const newCustRes = await client.query(
+          `INSERT INTO customers (name, phone) VALUES ($1, $2) RETURNING id`,
+          [customerName, customerPhone]
+        );
+        finalCustomerId = newCustRes.rows[0].id;
+      }
+    } else {
+      await client.query('ROLLBACK');
+      return NextResponse.json(
+        { success: false, error: 'Please enter a customer name or select an existing customer.' },
+        { status: 400 }
+      );
     }
 
     // Generate unique Invoice Number

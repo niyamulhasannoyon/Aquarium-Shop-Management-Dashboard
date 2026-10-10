@@ -96,7 +96,7 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
     else if (!digits.startsWith('88')) digits = `880${digits}`;
 
     const text = encodeURIComponent(
-      `প্রিয় ${name}, অ্যাকোয়া প্লেস বিডিতে (Aqua Place BD) আপনার বকেয়া বাকি টাকার পরিমাণ ৳${amount}। অনুরোধপূর্বক বকেয়া টাকা পরিশোধ করুন। ধন্যবাদ!`
+      t('khata.whatsappMessage', { name, amount: formatCurrency(amount) })
     );
     return `https://wa.me/${digits}?text=${text}`;
   };
@@ -112,9 +112,9 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">প্রফেশনাল বাকির খাতা ও লেজার ম্যানেজমেন্ট (Due Khata Ledger)</h2>
+              <h2 className="text-lg font-bold text-white">{t('khata.title')}</h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                গ্রাহকদের বকেয়া হিসাব, হোয়াটসঅ্যাপে তাগাদা পাঠানো এবং প্রফেশনাল বাকি আদায় সিস্টেম
+                {t('khata.subtitle')}
               </p>
             </div>
           </div>
@@ -125,7 +125,7 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
           className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-emerald-600 hover:from-amber-500 hover:to-emerald-500 text-white font-bold text-xs shadow-lg shadow-amber-900/30 flex items-center justify-center transition-all"
         >
           <CreditCard className="w-4 h-4 mr-2" />
-          + বাকি আদায় এনট্রি করুন
+          {t('khata.recordDueBtn')}
         </button>
       </div>
 
@@ -133,45 +133,45 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Outstanding Due */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 relative overflow-hidden">
-          <div className="text-slate-400 text-xs font-medium">মোট বকেয়া বাকি (Total Due)</div>
+          <div className="text-slate-400 text-xs font-medium">{t('khata.totalDueCard')}</div>
           <div className="text-lg sm:text-2xl font-bold text-rose-400 font-mono mt-2">
             {formatCurrency(dueSummary.totalDue)}
           </div>
           <div className="text-[11px] text-slate-400 mt-1">
-            বাজারের সর্বমোট বাকি টাকা
+            {t('khata.totalDueSub')}
           </div>
         </div>
 
         {/* Total Customers With Due */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 relative overflow-hidden">
-          <div className="text-slate-400 text-xs font-medium">বাকিদার খদ্দের সংখ্যা</div>
+          <div className="text-slate-400 text-xs font-medium">{t('khata.customersWithDueCard')}</div>
           <div className="text-lg sm:text-2xl font-bold text-amber-300 font-mono mt-2">
-            {dueSummary.customersWithDueCount} জন
+            {formatNumber(dueSummary.customersWithDueCount)}
           </div>
           <div className="text-[11px] text-amber-400 mt-1">
-            যাদের একাউন্টে বকেয়া রয়েছে
+            {t('khata.customersWithDueSub')}
           </div>
         </div>
 
         {/* Highest Due Customer */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 relative overflow-hidden">
-          <div className="text-slate-400 text-xs font-medium">সর্বোচ্চ বকেয়া খদ্দের</div>
+          <div className="text-slate-400 text-xs font-medium">{t('khata.highestDueCustomerCard')}</div>
           <div className="text-sm font-bold text-white truncate mt-2">
-            {dueSummary.highestDueCustomer ? dueSummary.highestDueCustomer.name : 'নেই'}
+            {dueSummary.highestDueCustomer ? dueSummary.highestDueCustomer.name : t('khata.none')}
           </div>
           <div className="text-xs font-mono font-bold text-rose-400 mt-0.5">
-            {dueSummary.highestDueCustomer ? formatCurrency(dueSummary.highestDueCustomer.total_due) : '৳0.00'}
+            {dueSummary.highestDueCustomer ? formatCurrency(dueSummary.highestDueCustomer.total_due) : formatCurrency(0)}
           </div>
         </div>
 
         {/* Total Due Collected */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 relative overflow-hidden">
-          <div className="text-slate-400 text-xs font-medium">মোট আদায়কৃত বাকি</div>
+          <div className="text-slate-400 text-xs font-medium">{t('khata.totalCollectedCard')}</div>
           <div className="text-lg sm:text-2xl font-bold text-emerald-400 font-mono mt-2">
             {formatCurrency(dueSummary.totalCollected)}
           </div>
           <div className="text-[11px] text-emerald-400 mt-1">
-            কাস্টমারদের থেকে ক্যাশ/বিকাশে আদায়
+            {t('khata.totalCollectedSub')}
           </div>
         </div>
       </div>
@@ -189,7 +189,7 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              বাকিদার কাস্টমার ({customers.filter((c) => c.total_due > 0).length})
+              {t('khata.dueOnly')} ({formatNumber(customers.filter((c) => c.total_due > 0).length)})
             </button>
             <button
               onClick={() => setDueFilter('all')}
@@ -199,7 +199,7 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              সকল কাস্টমার ({customers.length})
+              {t('khata.allCustomers')} ({formatNumber(customers.length)})
             </button>
             <button
               onClick={() => setDueFilter('cleared')}
@@ -209,7 +209,7 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              পরিশোধিত একাউন্ট ({customers.filter((c) => c.total_due <= 0).length})
+              {t('khata.cleared')} ({formatNumber(customers.filter((c) => c.total_due <= 0).length)})
             </button>
           </div>
 
@@ -217,7 +217,7 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
             <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
             <input
               type="text"
-              placeholder="নাম বা ফোন নাম্বার দিয়ে খুঁজুন..."
+              placeholder={t('khata.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-rose-500"
@@ -230,18 +230,18 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
           {customerDueList.length === 0 ? (
             <div className="p-12 text-center text-slate-500">
               <User className="w-10 h-10 mx-auto mb-3 opacity-30" />
-              <p className="text-sm font-semibold text-slate-400">কোন কাস্টমার তালিকা পাওয়া যায়নি</p>
+              <p className="text-sm font-semibold text-slate-400">{t('khata.noCustomersFound')}</p>
             </div>
           ) : (
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800 bg-slate-950/60">
-                  <th className="py-3 px-4">কাস্টমার (Customer Name)</th>
-                  <th className="py-3 px-4">যোগাযোগ (Contact)</th>
-                  <th className="py-3 px-4 text-right">বকেয়া টাকার পরিমাণ (Total Due)</th>
-                  <th className="py-3 px-4 text-center">স্ট্যাটাস (Status)</th>
-                  <th className="py-3 px-4 text-center">তাগাদা (WhatsApp Reminder)</th>
-                  <th className="py-3 px-4 text-right">অ্যাকশন (Actions)</th>
+                  <th className="py-3 px-4">{t('khata.thCustomer')}</th>
+                  <th className="py-3 px-4">{t('khata.thContact')}</th>
+                  <th className="py-3 px-4 text-right">{t('khata.thTotalDue')}</th>
+                  <th className="py-3 px-4 text-center">{t('khata.thStatus')}</th>
+                  <th className="py-3 px-4 text-center">{t('khata.thReminder')}</th>
+                  <th className="py-3 px-4 text-right">{t('khata.thActions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
@@ -278,7 +278,7 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
                         {hasDue ? (
                           <span className="text-rose-400 text-sm">{formatCurrency(cust.total_due)}</span>
                         ) : (
-                          <span className="text-emerald-400 text-xs">৳0.00 (পরিশোধিত)</span>
+                          <span className="text-emerald-400 text-xs">{formatCurrency(0)} ({t('khata.paidBadge')})</span>
                         )}
                       </td>
 
@@ -286,15 +286,15 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
                       <td className="py-3 px-4 text-center">
                         {cust.total_due > 2000 ? (
                           <span className="inline-flex items-center text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/30">
-                            <AlertCircle className="w-3 h-3 mr-1" /> High Due
+                            <AlertCircle className="w-3 h-3 mr-1" /> {t('khata.highDueBadge')}
                           </span>
                         ) : cust.total_due > 0 ? (
                           <span className="inline-flex items-center text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
-                            Pending Due
+                            {t('khata.pendingDueBadge')}
                           </span>
                         ) : (
                           <span className="inline-flex items-center text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                            <CheckCircle2 className="w-3 h-3 mr-1" /> Account Clear
+                            <CheckCircle2 className="w-3 h-3 mr-1" /> {t('khata.clearBadge')}
                           </span>
                         )}
                       </td>
@@ -309,7 +309,7 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
                             className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-400 text-[11px] font-semibold transition-all"
                           >
                             <MessageSquare className="w-3.5 h-3.5" />
-                            <span>WhatsApp তাগাদা</span>
+                            <span>{t('khata.sendReminder')}</span>
                           </a>
                         ) : (
                           <span className="text-slate-600 text-[11px]">-</span>
@@ -324,7 +324,7 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
                               onClick={() => onOpenCollectDue(cust.id)}
                               className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold transition-colors shadow-sm"
                             >
-                              বাকি আদায়
+                              {t('khata.collectDue')}
                             </button>
                           )}
                           <button
@@ -332,7 +332,7 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
                             className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold transition-colors flex items-center"
                           >
                             <FileText className="w-3 h-3 mr-1" />
-                            লেজার
+                            {t('khata.ledger')}
                           </button>
                         </div>
                       </td>
@@ -350,26 +350,26 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex items-center space-x-2">
             <History className="w-4 h-4 text-amber-400" />
-            <h3 className="text-sm font-bold text-white">সর্বশেষ বাকি পরিশোধের ইতিহাস (Due Receipts History)</h3>
+            <h3 className="text-sm font-bold text-white">{t('khata.receiptHistoryTitle')}</h3>
           </div>
           <span className="text-[11px] text-slate-400 font-mono">
-            মোট {dueCollections.length} টি মানি রিসিট
+            {t('khata.totalMoneyReceipts', { count: formatNumber(dueCollections.length) })}
           </span>
         </div>
 
         <div className="overflow-x-auto">
           {dueCollections.length === 0 ? (
             <div className="py-6 text-center text-slate-500 text-xs">
-              কোন বাকি আদায়ের রেকর্ড পাওয়া যায়নি।
+              {t('khata.noReceipts')}
             </div>
           ) : (
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800">
-                  <th className="py-2 px-3">রিসিট নং & তারিখ</th>
-                  <th className="py-2 px-3">কাস্টমার</th>
-                  <th className="py-2 px-3 text-right">আদায়কৃত টাকা</th>
-                  <th className="py-2 px-3">নোট / পেমেন্ট মাধ্যম</th>
+                  <th className="py-2 px-3">{t('khata.thReceiptDate')}</th>
+                  <th className="py-2 px-3">{t('khata.thCustomer')}</th>
+                  <th className="py-2 px-3 text-right">{t('khata.thAmountPaid')}</th>
+                  <th className="py-2 px-3">{t('khata.thNote')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
@@ -380,7 +380,7 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
                       <td className="py-2.5 px-3 font-mono">
                         <div className="font-bold text-slate-200">REC-{col.id.toString().padStart(4, '0')}</div>
                         <div className="text-[10px] text-slate-500">
-                          {new Date(col.payment_date).toLocaleDateString()}
+                          {formatDate(col.payment_date)}
                         </div>
                       </td>
                       <td className="py-2.5 px-3 font-semibold text-slate-200">

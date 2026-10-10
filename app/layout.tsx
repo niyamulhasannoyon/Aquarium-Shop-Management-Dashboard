@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { LanguageProvider } from '@/context/language-context';
+import { ThemeProvider } from '@/context/theme-context';
 import { PasscodeGate } from '@/components/passcode-gate';
 
 export const metadata: Metadata = {
@@ -33,13 +34,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-emerald-500 selection:text-white">
-        <LanguageProvider>
-          <PasscodeGate>
-            {children}
-          </PasscodeGate>
-        </LanguageProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen antialiased selection:bg-emerald-500 selection:text-white transition-colors duration-200">
+        <ThemeProvider>
+          <LanguageProvider>
+            <PasscodeGate>
+              {children}
+            </PasscodeGate>
+          </LanguageProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

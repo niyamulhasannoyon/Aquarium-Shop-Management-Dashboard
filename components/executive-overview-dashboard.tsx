@@ -44,21 +44,24 @@ import { RecentSalesList } from '@/components/recent-sales-list';
 import { LowStockWarningTable } from '@/components/low-stock-warning-table';
 import { DailyActivityLedger } from '@/components/daily-activity-ledger';
 import { DueManagementLedger } from '@/components/due-management-ledger';
+import { ProductInventoryLedger } from '@/components/product-inventory-ledger';
 import { NewSaleModal } from '@/components/modals/new-sale-modal';
 import { AddStockModal } from '@/components/modals/add-stock-modal';
 import { AddProductModal } from '@/components/modals/add-product-modal';
+import { EditProductModal } from '@/components/modals/edit-product-modal';
 import { CollectDueModal } from '@/components/modals/collect-due-modal';
 import { AddCategoryModal } from '@/components/modals/add-category-modal';
 import { AddCustomerModal } from '@/components/modals/add-customer-modal';
 import { CustomerProfileModal } from '@/components/modals/customer-profile-modal';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { ThemeSwitcher } from '@/components/theme-switcher';
 import { useLanguage } from '@/context/language-context';
 
 export const ExecutiveDashboard: React.FC = () => {
   const { t, formatNumber } = useLanguage();
 
   // Navigation Tab State
-  const [activeTab, setActiveTab] = useState<'overview' | 'daily_ledger' | 'due_khata'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'daily_ledger' | 'due_khata'>('overview');
   const [overviewTimeframe, setOverviewTimeframe] = useState<TimeframePeriod>('overall');
 
   // Application Data States initialized with PostgreSQL schema mock data
@@ -76,15 +79,22 @@ export const ExecutiveDashboard: React.FC = () => {
   >('none');
   const [restockProductId, setRestockProductId] = useState<number | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isEditProductOpen, setIsEditProductOpen] = useState(false);
 
   // Fetch real database data if backend is available
   useEffect(() => {
     async function loadBackendData() {
       try {
-        const res = await fetch('/api/dashboard/overview');
-        const data = await res.json();
-        if (data.success && !data.isFallback) {
-          // Live API connection available
+        const [prodRes, catRes] = await Promise.all([
+          fetch('/api/products').then((r) => r.json()).catch(() => null),
+          fetch('/api/categories').then((r) => r.json()).catch(() => null),
+        ]);
+        if (prodRes?.success && Array.isArray(prodRes.products) && prodRes.products.length > 0) {
+          setProducts(prodRes.products);
+        }
+        if (catRes?.success && Array.isArray(catRes.categories) && catRes.categories.length > 0) {
+          setCategories(catRes.categories);
         }
       } catch (err) {
         // Fallback to local state
@@ -192,6 +202,10 @@ export const ExecutiveDashboard: React.FC = () => {
   // Submit Handlers simulating PostgreSQL triggers
   const handleCreateSale = (saleData: {
     customer_id: number | null;
+    new_customer?: {
+      name: string;
+      phone?: string;
+    };
     items: Array<{
       product_id: number;
       unit_type: string;
@@ -205,6 +219,43 @@ export const ExecutiveDashboard: React.FC = () => {
     paid_amount: number;
     due_amount: number;
   }) => {
+    let targetCustomerId = saleData.customer_id;
+
+    // Auto-create new customer if name was typed in sale modal
+    if (saleData.new_customer && saleData.new_customer.name) {
+      const existing = customers.find(
+        (c) => c.name.toLowerCase() === saleData.new_customer!.name.trim().toLowerCase()
+      );
+      if (existing) {
+        targetCustomerId = existing.id;
+      } else {
+        const newCustId = customers.length > 0 ? Math.max(...customers.map((c) => c.id)) + 1 : 1;
+        const newCustomer: Customer = {
+          id: newCustId,
+          name: saleData.new_customer.name.trim(),
+          phone: saleData.new_customer.phone?.trim() || '',
+          address: '',
+          total_due: 0,
+          created_at: new Date().toISOString(),
+        };
+
+        setCustomers((prev) => [newCustomer, ...prev]);
+        targetCustomerId = newCustId;
+
+        // Sync with backend API
+        fetch('/api/customers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: newCustomer.name,
+            phone: newCustomer.phone,
+            address: '',
+            initial_due: 0,
+          }),
+        }).catch(() => {});
+      }
+    }
+
     const newSaleId = sales.length > 0 ? Math.max(...sales.map((s) => s.id)) + 1 : 1;
     const invoiceNo = `INV-2026-${String(newSaleId).padStart(3, '0')}`;
     const nowIso = new Date().toISOString();
@@ -212,7 +263,7 @@ export const ExecutiveDashboard: React.FC = () => {
     const newSale: Sale = {
       id: newSaleId,
       invoice_no: invoiceNo,
-      customer_id: saleData.customer_id,
+      customer_id: targetCustomerId,
       total_amount: saleData.total_amount,
       paid_amount: saleData.paid_amount,
       due_amount: saleData.due_amount,
@@ -254,10 +305,10 @@ export const ExecutiveDashboard: React.FC = () => {
     );
 
     // Trigger 3 Simulation: Increase customer total_due if due_amount > 0
-    if (saleData.due_amount > 0 && saleData.customer_id !== null) {
+    if (saleData.due_amount > 0 && targetCustomerId !== null) {
       setCustomers((prevCustomers) =>
         prevCustomers.map((c) =>
-          c.id === saleData.customer_id
+          c.id === targetCustomerId
             ? { ...c, total_due: c.total_due + saleData.due_amount }
             : c
         )
@@ -328,6 +379,39 @@ export const ExecutiveDashboard: React.FC = () => {
     };
 
     setProducts((prev) => [...prev, newProd]);
+
+    // Sync with backend API
+    fetch('/api/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(prodData),
+    }).catch(() => {});
+  };
+
+  const handleOpenEditProduct = (prod: Product) => {
+    setEditingProduct(prod);
+    setIsEditProductOpen(true);
+  };
+
+  const handleUpdateProduct = (updatedProduct: Product) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
+    );
+
+    // Sync with backend API
+    fetch('/api/products', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: updatedProduct.id,
+        name: updatedProduct.name,
+        category_id: updatedProduct.category_id,
+        default_unit: updatedProduct.default_unit,
+        cost_price: updatedProduct.cost_price,
+        selling_price: updatedProduct.selling_price,
+        current_stock: updatedProduct.current_stock,
+      }),
+    }).catch(() => {});
   };
 
   const handleCollectDue = (collectionData: {
@@ -389,6 +473,7 @@ export const ExecutiveDashboard: React.FC = () => {
 
           {/* Quick Header Actions */}
           <div className="flex items-center flex-wrap gap-2.5">
+            <ThemeSwitcher />
             <LanguageSwitcher />
 
             <button
@@ -416,10 +501,18 @@ export const ExecutiveDashboard: React.FC = () => {
               {t('modal.customerProfile.title')} ({formatNumber(customers.length)})
             </button>
 
-            <div className="px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-slate-300 flex items-center">
-              <Layers className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
+            <button
+              onClick={() => setActiveTab('products')}
+              title="View Product Catalog & Stock"
+              className={`px-3 py-2 border rounded-xl text-xs flex items-center transition-all cursor-pointer shadow-sm ${
+                activeTab === 'products'
+                  ? 'bg-teal-600/30 border-teal-500/50 text-white font-bold'
+                  : 'bg-slate-800/80 hover:bg-slate-700/80 border-slate-700/80 text-slate-300 hover:text-white'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5 mr-1.5 text-teal-400" />
               Items: <strong className="text-white ml-1">{formatNumber(products.length)}</strong>
-            </div>
+            </button>
           </div>
         </div>
 
@@ -427,7 +520,7 @@ export const ExecutiveDashboard: React.FC = () => {
         <div className="flex items-center space-x-2 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800 overflow-x-auto">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`flex-1 min-w-[140px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-2 ${
+            className={`flex-1 min-w-[130px] px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-2 ${
               activeTab === 'overview'
                 ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-950'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
@@ -438,8 +531,20 @@ export const ExecutiveDashboard: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setActiveTab('products')}
+            className={`flex-1 min-w-[140px] px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-2 ${
+              activeTab === 'products'
+                ? 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-lg shadow-teal-950'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>{t('nav.products')}</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('daily_ledger')}
-            className={`flex-1 min-w-[170px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-2 ${
+            className={`flex-1 min-w-[150px] px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-2 ${
               activeTab === 'daily_ledger'
                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-indigo-950'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
@@ -451,7 +556,7 @@ export const ExecutiveDashboard: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('due_khata')}
-            className={`flex-1 min-w-[150px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-2 ${
+            className={`flex-1 min-w-[140px] px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-2 ${
               activeTab === 'due_khata'
                 ? 'bg-gradient-to-r from-rose-600 to-amber-600 text-white shadow-lg shadow-rose-950'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
@@ -531,12 +636,26 @@ export const ExecutiveDashboard: React.FC = () => {
               <LowStockWarningTable
                 lowStockItems={lowStockItems}
                 onRestockItem={(prodId) => handleOpenAddStock(prodId)}
+                onViewAllProducts={() => setActiveTab('products')}
               />
             </section>
           </div>
         )}
 
-        {/* TAB 2: DAILY & MONTHLY BUY/SELL ACTIVITY LEDGER */}
+        {/* TAB 2: PRODUCT INVENTORY & SPECIFICATIONS LEDGER */}
+        {activeTab === 'products' && (
+          <div className="animate-in fade-in duration-200">
+            <ProductInventoryLedger
+              products={products}
+              categories={categories}
+              onEditProduct={handleOpenEditProduct}
+              onOpenAddStock={(prodId) => handleOpenAddStock(prodId)}
+              onOpenAddProduct={handleOpenAddProduct}
+            />
+          </div>
+        )}
+
+        {/* TAB 3: DAILY & MONTHLY BUY/SELL ACTIVITY LEDGER */}
         {activeTab === 'daily_ledger' && (
           <div className="animate-in fade-in duration-200">
             <DailyActivityLedger
@@ -593,6 +712,18 @@ export const ExecutiveDashboard: React.FC = () => {
           onClose={() => setActiveModal('none')}
           categories={categories}
           onSubmitProduct={handleAddProduct}
+          onAddCategory={handleAddCategory}
+        />
+
+        <EditProductModal
+          isOpen={isEditProductOpen}
+          onClose={() => {
+            setIsEditProductOpen(false);
+            setEditingProduct(null);
+          }}
+          product={editingProduct}
+          categories={categories}
+          onUpdateProduct={handleUpdateProduct}
           onAddCategory={handleAddCategory}
         />
 

@@ -233,7 +233,7 @@ export function getCombinedActivityFeed(data: {
       dateStr: s.sale_date,
       ref: s.invoice_no,
       title: `Sale Invoice (${s.invoice_no})`,
-      partyName: cust ? cust.name : 'Walk-in Customer (নগদ খদ্দের)',
+      partyName: cust ? cust.name : 'General Customer (সাধারণ খদ্দের)',
       partyPhone: cust?.phone,
       itemsSummary: itemsSummary || 'Retail Items',
       totalAmount: s.total_amount,
@@ -315,7 +315,7 @@ export function getRecentSales(
     return {
       id: s.id,
       invoice_no: s.invoice_no,
-      customer_name: customer ? customer.name : 'Walk-in Customer',
+      customer_name: customer ? customer.name : 'General Customer',
       customer_phone: customer?.phone,
       total_amount: total,
       paid_amount: paid,

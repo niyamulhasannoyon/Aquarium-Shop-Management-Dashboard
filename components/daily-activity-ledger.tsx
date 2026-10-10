@@ -167,10 +167,10 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
           <div>
             <div className="flex items-center space-x-2">
               <Calendar className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-lg font-bold text-white">দৈনিক ও মাসিক লেনদেন খাতা (Day-by-Day Buy & Sell Log)</h2>
+              <h2 className="text-lg font-bold text-white">{t('ledger.title')}</h2>
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              কোন দিন কত টাকার বিক্রি (Sales) এবং কেনাকাটা (Purchases) হয়েছে তার বিস্তারিত রেকর্ড
+              {t('ledger.subtitle')}
             </p>
           </div>
 
@@ -184,7 +184,7 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
                   : 'text-slate-400 hover:text-white hover:bg-slate-800'
               }`}
             >
-              আজকের হিসাব (Today)
+              {t('ledger.today')}
             </button>
             <button
               onClick={() => setSelectedTimeframe('this_month')}
@@ -194,7 +194,7 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
                   : 'text-slate-400 hover:text-white hover:bg-slate-800'
               }`}
             >
-              এই মাসের হিসাব (This Month)
+              {t('ledger.thisMonth')}
             </button>
             <button
               onClick={() => setSelectedTimeframe('overall')}
@@ -204,7 +204,7 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
                   : 'text-slate-400 hover:text-white hover:bg-slate-800'
               }`}
             >
-              সর্বমোট হিসাব (Overall)
+              {t('ledger.overall')}
             </button>
             <button
               onClick={() => setSelectedTimeframe('custom')}
@@ -214,7 +214,7 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
                   : 'text-slate-400 hover:text-white hover:bg-slate-800'
               }`}
             >
-              Custom Date
+              {t('ledger.customDate')}
             </button>
           </div>
         </div>
@@ -223,7 +223,7 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
         {selectedTimeframe === 'custom' && (
           <div className="mt-4 pt-3 border-t border-slate-800 flex flex-wrap items-center gap-3 animate-in fade-in">
             <div className="flex items-center space-x-2">
-              <span className="text-xs text-slate-400">From:</span>
+              <span className="text-xs text-slate-400">{t('ledger.from')}</span>
               <input
                 type="date"
                 value={customStartDate}
@@ -232,7 +232,7 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
               />
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-xs text-slate-400">To:</span>
+              <span className="text-xs text-slate-400">{t('ledger.to')}</span>
               <input
                 type="date"
                 value={customEndDate}
@@ -249,7 +249,7 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
         {/* Total Sales in Timeframe */}
         <div className="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 relative overflow-hidden">
           <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>মোট বিক্রি (Sales)</span>
+            <span>{t('ledger.totalSales')}</span>
             <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
               <ArrowUpRight className="w-4 h-4" />
             </div>
@@ -258,14 +258,14 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
             {formatCurrency(summary.salesTotal)}
           </div>
           <div className="text-[11px] text-emerald-400 mt-1 flex items-center">
-            <span className="font-semibold mr-1">{summary.salesCount}</span> টির বিক্রয়ের ইনভয়েস
+            {t('ledger.salesInvoicesCount', { count: formatNumber(summary.salesCount) })}
           </div>
         </div>
 
         {/* Total Purchases in Timeframe */}
         <div className="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 relative overflow-hidden">
           <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>মাল কেনা (Purchases)</span>
+            <span>{t('ledger.purchases')}</span>
             <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400">
               <ArrowDownLeft className="w-4 h-4" />
             </div>
@@ -274,14 +274,14 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
             {formatCurrency(summary.purchasesTotal)}
           </div>
           <div className="text-[11px] text-indigo-400 mt-1 flex items-center">
-            <span className="font-semibold mr-1">{summary.purchasesCount}</span> বার স্টক কেনা হয়েছে
+            {t('ledger.purchasesCount', { count: formatNumber(summary.purchasesCount) })}
           </div>
         </div>
 
         {/* Due Collected in Timeframe */}
         <div className="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 relative overflow-hidden">
           <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>বাকি আদায় (Due Collections)</span>
+            <span>{t('ledger.dueCollections')}</span>
             <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
               <CreditCard className="w-4 h-4" />
             </div>
@@ -290,14 +290,14 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
             {formatCurrency(summary.collectionsTotal)}
           </div>
           <div className="text-[11px] text-amber-400 mt-1 flex items-center">
-            <span className="font-semibold mr-1">{summary.collectionsCount}</span> বার বাকি কালেকশন
+            {t('ledger.dueCollectionsCount', { count: formatNumber(summary.collectionsCount) })}
           </div>
         </div>
 
         {/* Net Profit in Timeframe */}
         <div className="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/20">
           <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>নিট অর্জিত লাভ (Realized Profit)</span>
+            <span>{t('ledger.realizedProfit')}</span>
             <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
               <TrendingUp className="w-4 h-4" />
             </div>
@@ -306,7 +306,7 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
             {formatCurrency(summary.profitTotal)}
           </div>
           <div className="text-[11px] text-slate-400 mt-1">
-            কেনা দাম ও বিক্রি দামের আসল লাভ
+            {t('ledger.profitSub')}
           </div>
         </div>
       </div>
@@ -323,7 +323,7 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            সব লেনদেন ({allEvents.length})
+            {t('ledger.allTransactions')} ({formatNumber(allEvents.length)})
           </button>
           <button
             onClick={() => setSelectedType('sale')}
@@ -333,7 +333,7 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <ArrowUpRight className="w-3.5 h-3.5 mr-1" /> শুধু বিক্রি (Sales)
+            <ArrowUpRight className="w-3.5 h-3.5 mr-1" /> {t('ledger.salesOnly')}
           </button>
           <button
             onClick={() => setSelectedType('purchase')}
@@ -343,7 +343,7 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <ArrowDownLeft className="w-3.5 h-3.5 mr-1" /> শুধু মাল কেনা (Purchases)
+            <ArrowDownLeft className="w-3.5 h-3.5 mr-1" /> {t('ledger.purchasesOnly')}
           </button>
           <button
             onClick={() => setSelectedType('collection')}
@@ -353,7 +353,7 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <CreditCard className="w-3.5 h-3.5 mr-1" /> বাকি জমা (Due Receipt)
+            <CreditCard className="w-3.5 h-3.5 mr-1" /> {t('ledger.collectionsOnly')}
           </button>
         </div>
 
@@ -362,7 +362,7 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
           <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
           <input
             type="text"
-            placeholder="পণ্য, খদ্দের বা মেমো খুঁজুন..."
+            placeholder={t('ledger.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-slate-800 border border-slate-700/80 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
@@ -375,8 +375,8 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
         {groupedEventsByDay.length === 0 ? (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-500">
             <Clock className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm font-semibold text-slate-400">এই সময়সীমায় কোন লেনদেনের তথ্য পাওয়া যায়নি</p>
-            <p className="text-xs text-slate-500 mt-1">অন্য তারিখ বা ফিল্টার পরিবর্তন করে চেষ্টা করুন।</p>
+            <p className="text-sm font-semibold text-slate-400">{t('ledger.noRecords')}</p>
+            <p className="text-xs text-slate-500 mt-1">{t('ledger.noRecordsSub')}</p>
           </div>
         ) : (
           groupedEventsByDay.map(([dayLabel, events]) => (
@@ -388,7 +388,7 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
                   <span className="text-xs font-bold text-slate-200">{dayLabel}</span>
                 </div>
                 <div className="text-[11px] text-slate-400 font-mono">
-                  {events.length} টির কার্যবিবরণী
+                  {t('ledger.activityCount', { count: formatNumber(events.length) })}
                 </div>
               </div>
 
@@ -397,13 +397,13 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-800/80 bg-slate-950/40">
-                      <th className="py-2 px-3.5">সময় ও রেফারেন্স</th>
-                      <th className="py-2 px-3.5">ধরন (Type)</th>
-                      <th className="py-2 px-3.5">পার্টি / বিবরণ</th>
-                      <th className="py-2 px-3.5 text-right">মোট টাকা (Total)</th>
-                      <th className="py-2 px-3.5 text-right">জমা (Paid)</th>
-                      <th className="py-2 px-3.5 text-right">বাকি (Due)</th>
-                      <th className="py-2 px-3.5 text-right">লাভ (Profit)</th>
+                      <th className="py-2 px-3.5">{t('ledger.tableTimeRef')}</th>
+                      <th className="py-2 px-3.5">{t('ledger.tableType')}</th>
+                      <th className="py-2 px-3.5">{t('ledger.tablePartyDesc')}</th>
+                      <th className="py-2 px-3.5 text-right">{t('ledger.tableTotal')}</th>
+                      <th className="py-2 px-3.5 text-right">{t('ledger.tablePaid')}</th>
+                      <th className="py-2 px-3.5 text-right">{t('ledger.tableDue')}</th>
+                      <th className="py-2 px-3.5 text-right">{t('ledger.tableProfit')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60">
@@ -424,17 +424,17 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
                         <td className="py-3 px-3.5">
                           {evt.type === 'sale' && (
                             <span className="inline-flex items-center text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                              <ArrowUpRight className="w-3 h-3 mr-1" /> বিক্রি (SELL)
+                              <ArrowUpRight className="w-3.5 h-3.5 mr-1" /> {t('ledger.badgeSell')}
                             </span>
                           )}
                           {evt.type === 'purchase' && (
                             <span className="inline-flex items-center text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
-                              <ArrowDownLeft className="w-3 h-3 mr-1" /> কেনা (BUY)
+                              <ArrowDownLeft className="w-3.5 h-3.5 mr-1" /> {t('ledger.badgeBuy')}
                             </span>
                           )}
                           {evt.type === 'collection' && (
                             <span className="inline-flex items-center text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                              <CreditCard className="w-3 h-3 mr-1" /> বাকি আদায়
+                              <CreditCard className="w-3.5 h-3.5 mr-1" /> {t('ledger.badgeDue')}
                             </span>
                           )}
                         </td>

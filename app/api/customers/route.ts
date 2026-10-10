@@ -40,18 +40,22 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, phone, address } = body;
+    const { name, phone, address, initial_due } = body;
     
-    if (!name || !phone) {
+    if (!name || !name.trim()) {
       return NextResponse.json(
-        { success: false, error: 'Customer name and phone number are required' },
+        { success: false, error: 'Customer name is required' },
         { status: 400 }
       );
     }
     
+    const cleanPhone = phone ? phone.trim() : '';
+    const cleanAddress = address ? address.trim() : '';
+    const initialDueAmount = Number(initial_due) || 0;
+    
     const result = await pool.query(
-      `INSERT INTO customers (name, phone, address) VALUES ($1, $2, $3) RETURNING id, name, phone, address, total_due::float AS total_due`,
-      [name.trim(), phone.trim(), address ? address.trim() : '']
+      `INSERT INTO customers (name, phone, address, total_due) VALUES ($1, $2, $3, $4) RETURNING id, name, phone, address, total_due::float AS total_due`,
+      [name.trim(), cleanPhone, cleanAddress, initialDueAmount]
     );
     
     return NextResponse.json({ success: true, customer: result.rows[0] });

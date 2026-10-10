@@ -3,6 +3,16 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { LanguageProvider, useLanguage } from '@/context/language-context';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { DailyActivityLedger } from '@/components/daily-activity-ledger';
+import { DueManagementLedger } from '@/components/due-management-ledger';
+import {
+  initialCustomers,
+  initialSales,
+  initialPurchases,
+  initialDueCollections,
+  initialProducts,
+  initialSaleItems,
+} from '@/lib/mock-data';
 import { toBengaliDigits, formatCurrency, formatNumber } from '@/lib/i18n/formatters';
 
 const TestComponent = () => {
@@ -94,5 +104,103 @@ describe('Internationalization & Language Switch System', () => {
     // Click English
     fireEvent.click(englishBtn);
     expect(screen.getByTestId('lang-val').textContent).toBe('en');
+  });
+
+  it('renders DailyActivityLedger and DueManagementLedger in English without hardcoded Bengali', () => {
+    // Render DailyActivityLedger in English (default)
+    const { unmount: unmountLedger } = render(
+      <LanguageProvider>
+        <DailyActivityLedger
+          sales={initialSales}
+          purchases={initialPurchases}
+          dueCollections={initialDueCollections}
+          customers={initialCustomers}
+          products={initialProducts}
+          saleItems={initialSaleItems}
+        />
+      </LanguageProvider>
+    );
+
+    expect(screen.getByText('Day-by-Day Buy & Sell Log')).toBeInTheDocument();
+    expect(screen.getByText('Total Sales')).toBeInTheDocument();
+    expect(screen.getByText('Purchases')).toBeInTheDocument();
+    expect(screen.getByText('Realized Profit')).toBeInTheDocument();
+    unmountLedger();
+
+    // Render DueManagementLedger in English
+    const { unmount: unmountKhata } = render(
+      <LanguageProvider>
+        <DueManagementLedger
+          customers={initialCustomers}
+          sales={initialSales}
+          dueCollections={initialDueCollections}
+          saleItems={initialSaleItems}
+          onOpenCollectDue={() => {}}
+          onOpenCustomerProfile={() => {}}
+          onOpenNewSaleForCustomer={() => {}}
+        />
+      </LanguageProvider>
+    );
+
+    expect(screen.getByText('Due Khata Ledger & Collection')).toBeInTheDocument();
+    expect(screen.getByText('Total Outstanding Due')).toBeInTheDocument();
+    expect(screen.getByText('Customers with Due')).toBeInTheDocument();
+    expect(screen.getByText('Total Due Collected')).toBeInTheDocument();
+    unmountKhata();
+  });
+
+  it('renders DailyActivityLedger and DueManagementLedger in Bengali when language is bn', () => {
+    const BengaliWrapper = ({ children }: { children: React.ReactNode }) => {
+      const { setLanguage } = useLanguage();
+      React.useEffect(() => {
+        setLanguage('bn');
+      }, [setLanguage]);
+      return <>{children}</>;
+    };
+
+    // Render DailyActivityLedger in Bengali
+    const { unmount: unmountLedger } = render(
+      <LanguageProvider>
+        <BengaliWrapper>
+          <DailyActivityLedger
+            sales={initialSales}
+            purchases={initialPurchases}
+            dueCollections={initialDueCollections}
+            customers={initialCustomers}
+            products={initialProducts}
+            saleItems={initialSaleItems}
+          />
+        </BengaliWrapper>
+      </LanguageProvider>
+    );
+
+    expect(screen.getByText('দৈনিক ও মাসিক লেনদেন খাতা')).toBeInTheDocument();
+    expect(screen.getByText('মোট বিক্রি')).toBeInTheDocument();
+    expect(screen.getByText('মাল কেনা (স্টক ক্রয়)')).toBeInTheDocument();
+    expect(screen.getByText('নিট অর্জিত লাভ')).toBeInTheDocument();
+    unmountLedger();
+
+    // Render DueManagementLedger in Bengali
+    const { unmount: unmountKhata } = render(
+      <LanguageProvider>
+        <BengaliWrapper>
+          <DueManagementLedger
+            customers={initialCustomers}
+            sales={initialSales}
+            dueCollections={initialDueCollections}
+            saleItems={initialSaleItems}
+            onOpenCollectDue={() => {}}
+            onOpenCustomerProfile={() => {}}
+            onOpenNewSaleForCustomer={() => {}}
+          />
+        </BengaliWrapper>
+      </LanguageProvider>
+    );
+
+    expect(screen.getByText('প্রফেশনাল বাকির খাতা ও লেজার ম্যানেজমেন্ট')).toBeInTheDocument();
+    expect(screen.getByText('মোট বকেয়া বাকি')).toBeInTheDocument();
+    expect(screen.getByText('বাকিদার খদ্দের সংখ্যা')).toBeInTheDocument();
+    expect(screen.getByText('মোট আদায়কৃত বাকি')).toBeInTheDocument();
+    unmountKhata();
   });
 });

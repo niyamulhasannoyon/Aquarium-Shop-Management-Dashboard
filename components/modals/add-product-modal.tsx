@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, PlusCircle, Check, FolderPlus, Info } from 'lucide-react';
 import { Category } from '@/types/executive';
+import { useLanguage } from '@/context/language-context';
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -26,12 +27,13 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
   onSubmitProduct,
   onAddCategory,
 }) => {
+  const { t, language } = useLanguage();
   const [name, setName] = useState('');
   const [categoryId, setCategoryId] = useState<number>(categories[0]?.id || 1);
   const [unit, setUnit] = useState('piece');
   const [costPrice, setCostPrice] = useState<number>(100);
   const [sellingPrice, setSellingPrice] = useState<number>(120);
-  const [initialStock, setInitialStock] = useState<number>(20);
+  const [initialStock, setInitialStock] = useState<number>(0);
 
   // Inline Add Category state
   const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -173,12 +175,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 onChange={(e) => setUnit(e.target.value)}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
               >
-                <option value="piece">Piece (পিস / জোড়া option)</option>
-                <option value="bag">Bag (বস্তা)</option>
-                <option value="bottle">Bottle (বোতল)</option>
-                <option value="box">Box (বাক্স)</option>
-                <option value="packet">Packet (প্যাকেট)</option>
-                <option value="pair">Pair (জোড়া)</option>
+                <option value="piece">{language === 'bn' ? 'পিস (Piece / জোড়া অপশন)' : 'Piece (Single / Pair option)'}</option>
+                <option value="bag">{language === 'bn' ? 'বস্তা (Bag)' : 'Bag'}</option>
+                <option value="bottle">{language === 'bn' ? 'বোতল (Bottle)' : 'Bottle'}</option>
+                <option value="box">{language === 'bn' ? 'বাক্স (Box)' : 'Box'}</option>
+                <option value="packet">{language === 'bn' ? 'প্যাকেট (Packet)' : 'Packet'}</option>
+                <option value="pair">{language === 'bn' ? 'জোড়া (Pair)' : 'Pair'}</option>
               </select>
             </div>
 
@@ -280,7 +282,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
               />
               <div className="whitespace-nowrap px-3 py-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 rounded-xl text-xs font-bold">
-                = {joraStock} Jora (জোড়া)
+                = {joraStock} {language === 'bn' ? 'জোড়া' : 'Pair'}
               </div>
             </div>
           </div>

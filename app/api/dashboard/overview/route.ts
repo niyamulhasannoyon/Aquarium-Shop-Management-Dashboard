@@ -39,7 +39,7 @@ export async function GET() {
           s.paid_amount::float AS paid_amount,
           s.due_amount::float AS due_amount,
           s.sale_date,
-          COALESCE(c.name, 'Walk-in Customer') AS customer_name,
+          COALESCE(c.name, 'General Customer') AS customer_name,
           c.phone AS customer_phone
          FROM sales s
          LEFT JOIN customers c ON s.customer_id = c.id
