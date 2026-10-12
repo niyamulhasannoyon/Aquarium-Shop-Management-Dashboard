@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Customer, Sale, SaleItem, DueCollection } from '@/types/executive';
 import { formatCurrency } from '@/lib/calculations';
+import { useLanguage } from '@/context/language-context';
 
 interface CustomerProfileModalProps {
   isOpen: boolean;
@@ -47,6 +48,7 @@ export const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
   onOpenNewSaleForCustomer,
   onOpenAddCustomer,
 }) => {
+  const { t, language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'ledger' | 'sales'>('ledger');
 
@@ -358,21 +360,27 @@ export const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                 </div>
 
                 {/* 3 Metric Cards for Selected Customer */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
                   <div className="bg-slate-800/50 border border-slate-800 p-3 rounded-xl">
-                    <div className="text-[11px] text-slate-400 font-medium">Total Lifetime Purchases</div>
+                    <div className="text-[11px] text-slate-400 font-medium">
+                      {language === 'bn' ? 'সর্বমোট ক্রয়মূল্য' : 'Total Lifetime Purchases'}
+                    </div>
                     <div className="text-sm sm:text-base font-bold text-slate-100 font-mono mt-0.5">
                       {formatCurrency(totalSalesAmount)}
                     </div>
                   </div>
                   <div className="bg-slate-800/50 border border-slate-800 p-3 rounded-xl">
-                    <div className="text-[11px] text-slate-400 font-medium">Total Amount Paid</div>
+                    <div className="text-[11px] text-slate-400 font-medium">
+                      {language === 'bn' ? 'মোট পরিশোধিত' : 'Total Amount Paid'}
+                    </div>
                     <div className="text-sm sm:text-base font-bold text-emerald-400 font-mono mt-0.5">
                       {formatCurrency(totalPaidAmount)}
                     </div>
                   </div>
                   <div className="bg-slate-800/50 border border-slate-800 p-3 rounded-xl">
-                    <div className="text-[11px] text-slate-400 font-medium">Current Outstanding Due</div>
+                    <div className="text-[11px] text-slate-400 font-medium">
+                      {language === 'bn' ? 'বর্তমান বকেয়া' : 'Current Outstanding Due'}
+                    </div>
                     <div
                       className={`text-sm sm:text-base font-bold font-mono mt-0.5 ${
                         currentCustomer.total_due > 0 ? 'text-rose-400' : 'text-slate-300'
@@ -395,7 +403,8 @@ export const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                             : 'text-slate-400 hover:text-white hover:bg-slate-800'
                         }`}
                       >
-                        <History className="w-3.5 h-3.5 mr-1.5" /> Customer Ledger Timeline
+                        <History className="w-3.5 h-3.5 mr-1.5" />
+                        <span>{language === 'bn' ? 'লেজার টাইমলাইন' : 'Customer Ledger Timeline'}</span>
                       </button>
                       <button
                         onClick={() => setActiveTab('sales')}
@@ -405,116 +414,223 @@ export const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                             : 'text-slate-400 hover:text-white hover:bg-slate-800'
                         }`}
                       >
-                        <Receipt className="w-3.5 h-3.5 mr-1.5" /> Sales Invoices ({customerSales.length})
+                        <Receipt className="w-3.5 h-3.5 mr-1.5" />
+                        <span>{language === 'bn' ? 'বিক্রয় ইনভয়েস' : 'Sales Invoices'} ({customerSales.length})</span>
                       </button>
                     </div>
                     <span className="text-[11px] text-slate-500 hidden sm:inline">
-                      Auto-calculated running balance ledger
+                      {language === 'bn' ? 'স্বয়ংক্রিয় চলমান ব্যালেন্স লেজার' : 'Auto-calculated running balance ledger'}
                     </span>
                   </div>
 
                   {/* Tab 1: Combined Ledger Events */}
                   {activeTab === 'ledger' && (
-                    <div className="mt-3 overflow-x-auto">
+                    <div className="mt-3">
                       {ledgerEvents.length === 0 ? (
                         <div className="text-center py-8 text-slate-500 text-xs">
-                          No transactions or due receipts recorded for this customer.
+                          {language === 'bn' ? 'কোন লেনদেন বা বাকি আদায়ের রেকর্ড নেই।' : 'No transactions or due receipts recorded for this customer.'}
                         </div>
                       ) : (
-                        <table className="w-full text-left text-xs border-collapse">
-                          <thead>
-                            <tr className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800">
-                              <th className="py-2 px-2.5">Date & Ref</th>
-                              <th className="py-2 px-2.5">Type</th>
-                              <th className="py-2 px-2.5 text-right">Invoice Amount</th>
-                              <th className="py-2 px-2.5 text-right">Paid</th>
-                              <th className="py-2 px-2.5 text-right">Due Added</th>
-                              <th className="py-2 px-2.5 text-right">Running Due Balance</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-800/60">
+                        <>
+                          {/* Mobile Ledger Cards (< md) */}
+                          <div className="block md:hidden space-y-2.5">
                             {ledgerEvents.map((evt) => (
-                              <tr key={evt.id} className="hover:bg-slate-800/30 transition-colors">
-                                <td className="py-2.5 px-2.5 font-mono">
-                                  <div className="font-bold text-slate-200">{evt.ref}</div>
-                                  <div className="text-[10px] text-slate-500">
-                                    {new Date(evt.dateStr).toLocaleDateString('en-US', {
-                                      month: 'short',
-                                      day: 'numeric',
-                                      year: 'numeric',
-                                    })}
+                              <div
+                                key={evt.id}
+                                className="p-3 bg-slate-900/90 border border-slate-800 rounded-xl space-y-2"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <span className="font-mono font-bold text-xs text-slate-200">
+                                      {evt.ref}
+                                    </span>
+                                    <span className="text-[10px] text-slate-500">
+                                      {new Date(evt.dateStr).toLocaleDateString()}
+                                    </span>
                                   </div>
-                                </td>
-                                <td className="py-2.5 px-2.5">
-                                  {evt.type === 'sale' ? (
-                                    <span className="inline-flex items-center text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
-                                      Sale Invoice
+                                  <div>
+                                    {evt.type === 'sale' ? (
+                                      <span className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
+                                        Sale
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                                        Receipt
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {evt.note && (
+                                  <div className="text-[10px] text-slate-400 italic">
+                                    {evt.note}
+                                  </div>
+                                )}
+
+                                <div className="grid grid-cols-3 gap-1.5 pt-1.5 border-t border-slate-800 text-[11px] font-mono">
+                                  <div>
+                                    <span className="text-[9px] text-slate-500 block">Amount:</span>
+                                    <span className="text-slate-200">
+                                      {evt.type === 'sale' ? formatCurrency(evt.amount) : formatCurrency(evt.paid)}
                                     </span>
-                                  ) : (
-                                    <span className="inline-flex items-center text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                                      Due Receipt
+                                  </div>
+                                  <div>
+                                    <span className="text-[9px] text-slate-500 block">Due Added:</span>
+                                    <span className="text-rose-400">
+                                      {evt.due_added > 0 ? formatCurrency(evt.due_added) : '-'}
                                     </span>
-                                  )}
-                                  {evt.note && <div className="text-[10px] text-slate-500 mt-0.5">{evt.note}</div>}
-                                </td>
-                                <td className="py-2.5 px-2.5 text-right font-mono text-slate-300">
-                                  {evt.type === 'sale' ? formatCurrency(evt.amount) : '-'}
-                                </td>
-                                <td className="py-2.5 px-2.5 text-right font-mono text-emerald-400 font-semibold">
-                                  {formatCurrency(evt.paid)}
-                                </td>
-                                <td className="py-2.5 px-2.5 text-right font-mono text-rose-400">
-                                  {evt.due_added > 0 ? formatCurrency(evt.due_added) : '-'}
-                                </td>
-                                <td className="py-2.5 px-2.5 text-right font-mono font-bold text-amber-400 bg-amber-500/5">
-                                  {formatCurrency(evt.runningBalance)}
-                                </td>
-                              </tr>
+                                  </div>
+                                  <div>
+                                    <span className="text-[9px] text-slate-500 block">Balance:</span>
+                                    <span className="font-bold text-amber-400">
+                                      {formatCurrency(evt.runningBalance)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
                             ))}
-                          </tbody>
-                        </table>
+                          </div>
+
+                          {/* Desktop Ledger Table (>= md) */}
+                          <div className="hidden md:block overflow-x-auto">
+                            <table className="w-full text-left text-xs border-collapse">
+                              <thead>
+                                <tr className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                                  <th className="py-2 px-2.5">Date & Ref</th>
+                                  <th className="py-2 px-2.5">Type</th>
+                                  <th className="py-2 px-2.5 text-right">Invoice Amount</th>
+                                  <th className="py-2 px-2.5 text-right">Paid</th>
+                                  <th className="py-2 px-2.5 text-right">Due Added</th>
+                                  <th className="py-2 px-2.5 text-right">Running Due Balance</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-800/60">
+                                {ledgerEvents.map((evt) => (
+                                  <tr key={evt.id} className="hover:bg-slate-800/30 transition-colors">
+                                    <td className="py-2.5 px-2.5 font-mono">
+                                      <div className="font-bold text-slate-200">{evt.ref}</div>
+                                      <div className="text-[10px] text-slate-500">
+                                        {new Date(evt.dateStr).toLocaleDateString('en-US', {
+                                          month: 'short',
+                                          day: 'numeric',
+                                          year: 'numeric',
+                                        })}
+                                      </div>
+                                    </td>
+                                    <td className="py-2.5 px-2.5">
+                                      {evt.type === 'sale' ? (
+                                        <span className="inline-flex items-center text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
+                                          Sale Invoice
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                                          Due Receipt
+                                        </span>
+                                      )}
+                                      {evt.note && <div className="text-[10px] text-slate-500 mt-0.5">{evt.note}</div>}
+                                    </td>
+                                    <td className="py-2.5 px-2.5 text-right font-mono text-slate-300">
+                                      {evt.type === 'sale' ? formatCurrency(evt.amount) : '-'}
+                                    </td>
+                                    <td className="py-2.5 px-2.5 text-right font-mono text-emerald-400 font-semibold">
+                                      {formatCurrency(evt.paid)}
+                                    </td>
+                                    <td className="py-2.5 px-2.5 text-right font-mono text-rose-400">
+                                      {evt.due_added > 0 ? formatCurrency(evt.due_added) : '-'}
+                                    </td>
+                                    <td className="py-2.5 px-2.5 text-right font-mono font-bold text-amber-400 bg-amber-500/5">
+                                      {formatCurrency(evt.runningBalance)}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </>
                       )}
                     </div>
                   )}
 
                   {/* Tab 2: Sales Invoices Only */}
                   {activeTab === 'sales' && (
-                    <div className="mt-3 overflow-x-auto">
+                    <div className="mt-3">
                       {customerSales.length === 0 ? (
-                        <div className="text-center py-8 text-slate-500 text-xs">No sales invoices found</div>
+                        <div className="text-center py-8 text-slate-500 text-xs">
+                          {language === 'bn' ? 'কোন বিক্রয় ইনভয়েস পাওয়া যায়নি' : 'No sales invoices found'}
+                        </div>
                       ) : (
-                        <table className="w-full text-left text-xs border-collapse">
-                          <thead>
-                            <tr className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800">
-                              <th className="py-2 px-2.5">Invoice No</th>
-                              <th className="py-2 px-2.5">Date</th>
-                              <th className="py-2 px-2.5 text-right">Total Amount</th>
-                              <th className="py-2 px-2.5 text-right">Paid Amount</th>
-                              <th className="py-2 px-2.5 text-right">Due Amount</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-800/60">
+                        <>
+                          {/* Mobile Sales Cards (< md) */}
+                          <div className="block md:hidden space-y-2.5">
                             {customerSales.map((sale) => (
-                              <tr key={sale.id} className="hover:bg-slate-800/30 transition-colors">
-                                <td className="py-2.5 px-2.5 font-mono font-bold text-slate-200">
-                                  {sale.invoice_no}
-                                </td>
-                                <td className="py-2.5 px-2.5 text-slate-400">
-                                  {new Date(sale.sale_date).toLocaleDateString()}
-                                </td>
-                                <td className="py-2.5 px-2.5 text-right font-mono text-white font-bold">
-                                  {formatCurrency(sale.total_amount)}
-                                </td>
-                                <td className="py-2.5 px-2.5 text-right font-mono text-emerald-400 font-semibold">
-                                  {formatCurrency(sale.paid_amount)}
-                                </td>
-                                <td className="py-2.5 px-2.5 text-right font-mono text-rose-400 font-bold">
-                                  {sale.due_amount > 0 ? formatCurrency(sale.due_amount) : '৳0.00'}
-                                </td>
-                              </tr>
+                              <div
+                                key={sale.id}
+                                className="p-3 bg-slate-900/90 border border-slate-800 rounded-xl space-y-2"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="font-mono font-bold text-xs text-white">
+                                    {sale.invoice_no}
+                                  </span>
+                                  <span className="text-[10px] text-slate-500">
+                                    {new Date(sale.sale_date).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-1.5 pt-1.5 border-t border-slate-800 text-[11px] font-mono">
+                                  <div>
+                                    <span className="text-[9px] text-slate-500 block">Total:</span>
+                                    <span className="font-bold text-white">{formatCurrency(sale.total_amount)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-[9px] text-slate-500 block">Paid:</span>
+                                    <span className="text-emerald-400 font-semibold">{formatCurrency(sale.paid_amount)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-[9px] text-slate-500 block">Due:</span>
+                                    <span className="text-rose-400 font-bold">
+                                      {sale.due_amount > 0 ? formatCurrency(sale.due_amount) : '৳0'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
                             ))}
-                          </tbody>
-                        </table>
+                          </div>
+
+                          {/* Desktop Sales Table (>= md) */}
+                          <div className="hidden md:block overflow-x-auto">
+                            <table className="w-full text-left text-xs border-collapse">
+                              <thead>
+                                <tr className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                                  <th className="py-2 px-2.5">Invoice No</th>
+                                  <th className="py-2 px-2.5">Date</th>
+                                  <th className="py-2 px-2.5 text-right">Total Amount</th>
+                                  <th className="py-2 px-2.5 text-right">Paid Amount</th>
+                                  <th className="py-2 px-2.5 text-right">Due Amount</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-800/60">
+                                {customerSales.map((sale) => (
+                                  <tr key={sale.id} className="hover:bg-slate-800/30 transition-colors">
+                                    <td className="py-2.5 px-2.5 font-mono font-bold text-slate-200">
+                                      {sale.invoice_no}
+                                    </td>
+                                    <td className="py-2.5 px-2.5 text-slate-400">
+                                      {new Date(sale.sale_date).toLocaleDateString()}
+                                    </td>
+                                    <td className="py-2.5 px-2.5 text-right font-mono text-white font-bold">
+                                      {formatCurrency(sale.total_amount)}
+                                    </td>
+                                    <td className="py-2.5 px-2.5 text-right font-mono text-emerald-400 font-semibold">
+                                      {formatCurrency(sale.paid_amount)}
+                                    </td>
+                                    <td className="py-2.5 px-2.5 text-right font-mono text-rose-400 font-bold">
+                                      {sale.due_amount > 0 ? formatCurrency(sale.due_amount) : '৳0.00'}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </>
                       )}
                     </div>
                   )}

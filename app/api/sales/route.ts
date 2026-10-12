@@ -1,6 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
+  try {
+    const salesRes = await pool.query(`
+      SELECT 
+        s.id,
+        s.invoice_no,
+        s.customer_id,
+        s.total_amount::float AS total_amount,
+        s.paid_amount::float AS paid_amount,
+        s.due_amount::float AS due_amount,
+        s.sale_date,
+        COALESCE(c.name, 'General Customer') AS customer_name,
+        COALESCE(c.phone, '') AS customer_phone
+      FROM sales s
+      LEFT JOIN customers c ON s.customer_id = c.id
+      ORDER BY s.sale_date DESC, s.id DESC
+    `);
+
+    const itemsRes = await pool.query(`
+      SELECT 
+        si.id,
+        si.sale_id,
+        si.product_id,
+        si.unit_type,
+        si.quantity::float AS quantity,
+        si.multiplier,
+        si.stock_deduct_qty::float AS stock_deduct_qty,
+        si.unit_price::float AS unit_price,
+        si.cost_price_snapshot::float AS cost_price_snapshot,
+        si.subtotal::float AS subtotal
+      FROM sale_items si
+      ORDER BY si.id ASC
+    `);
+
+    return NextResponse.json({
+      success: true,
+      sales: salesRes.rows,
+      sale_items: itemsRes.rows,
+    });
+  } catch (error: any) {
+    console.error('Error fetching sales:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Failed to fetch sales' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   let client;
   
@@ -10,13 +60,25 @@ export async function POST(request: NextRequest) {
     const {
       isWalkIn,
       customerId,
+      customer_id,
       walkInName,
       walkInPhone,
+      customerName: bodyCustomerName,
+      customerPhone: bodyCustomerPhone,
+      new_customer,
       items,
       totalAmount,
+      total_amount,
       paidAmount,
+      paid_amount,
       dueAmount,
+      due_amount,
+      sale_date,
     } = body;
+
+    const parsedTotal = Number(totalAmount ?? total_amount ?? 0);
+    const parsedPaid = Number(paidAmount ?? paid_amount ?? 0);
+    const parsedDue = dueAmount !== undefined ? Number(dueAmount) : due_amount !== undefined ? Number(due_amount) : Math.max(0, Number((parsedTotal - parsedPaid).toFixed(2)));
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -25,14 +87,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (totalAmount <= 0) {
+    if (parsedTotal <= 0) {
       return NextResponse.json(
         { success: false, error: 'Total amount must be greater than zero.' },
         { status: 400 }
       );
     }
-
-    const calculatedDue = Math.max(0, Number((totalAmount - paidAmount).toFixed(2)));
 
     // Begin atomic transaction
     await client.query('BEGIN');
@@ -41,15 +101,16 @@ export async function POST(request: NextRequest) {
     let customerName = 'General Customer';
     let customerPhone = '';
 
-    const providedName = (walkInName || body.customerName || body.new_customer?.name || '').trim();
-    const providedPhone = (walkInPhone || body.customerPhone || body.new_customer?.phone || '').trim();
+    const targetCustId = customerId || customer_id;
+    const providedName = (walkInName || bodyCustomerName || new_customer?.name || '').trim();
+    const providedPhone = (walkInPhone || bodyCustomerPhone || new_customer?.phone || '').trim();
 
-    if (customerId) {
-      finalCustomerId = Number(customerId);
+    if (targetCustId) {
+      finalCustomerId = Number(targetCustId);
       const custRes = await client.query(`SELECT name, phone FROM customers WHERE id = $1`, [finalCustomerId]);
       if (custRes.rows.length > 0) {
         customerName = custRes.rows[0].name;
-        customerPhone = custRes.rows[0].phone;
+        customerPhone = custRes.rows[0].phone || '';
       }
     } else if (providedName) {
       customerName = providedName;
@@ -67,79 +128,60 @@ export async function POST(request: NextRequest) {
       } else {
         // Automatically insert new customer
         const newCustRes = await client.query(
-          `INSERT INTO customers (name, phone) VALUES ($1, $2) RETURNING id`,
+          `INSERT INTO customers (name, phone, address, total_due, created_at) VALUES ($1, $2, '', 0, NOW()) RETURNING id`,
           [customerName, customerPhone]
         );
         finalCustomerId = newCustRes.rows[0].id;
       }
-    } else {
-      await client.query('ROLLBACK');
-      return NextResponse.json(
-        { success: false, error: 'Please enter a customer name or select an existing customer.' },
-        { status: 400 }
-      );
     }
 
     // Generate unique Invoice Number
-    const dateStr = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(2, 10); // YYMMDDHH
+    const dateStr = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(2, 10);
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const invoiceNo = `INV-${dateStr}-${randomSuffix}`;
+    const invoiceNo = body.invoice_no || body.invoiceNo || `INV-${dateStr}-${randomSuffix}`;
 
     // Insert Sale record
+    const saleDateVal = sale_date || new Date().toISOString();
     const saleRes = await client.query(
-      `INSERT INTO sales (invoice_no, customer_id, total_amount, paid_amount, due_amount)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, invoice_no, sale_date`,
-      [invoiceNo, finalCustomerId, totalAmount, paidAmount, calculatedDue]
+      `INSERT INTO sales (invoice_no, customer_id, total_amount, paid_amount, due_amount, sale_date)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, invoice_no, customer_id, total_amount::float AS total_amount, paid_amount::float AS paid_amount, due_amount::float AS due_amount, sale_date`,
+      [invoiceNo, finalCustomerId, parsedTotal, parsedPaid, parsedDue, saleDateVal]
     );
 
     const saleId = saleRes.rows[0].id;
 
-    // Process Sale Items and validate stock
+    // Process Sale Items
     const processedItems = [];
 
     for (const item of items) {
-      const productId = item.productId;
-      const unitType = item.unitType || 'Single';
-      const multiplier = item.multiplier || (unitType === 'Pair' ? 2 : 1);
-      const quantity = Number(item.quantity);
-      const stockDeductQty = quantity * multiplier;
-      const unitPrice = Number(item.price);
-      const subtotal = Number((quantity * unitPrice).toFixed(2));
+      const productId = Number(item.productId || item.product_id);
+      const unitType = item.unitType || item.unit_type || 'Single';
+      const multiplier = Number(item.multiplier || (unitType === 'Pair' || unitType === 'জোড়া' ? 2 : 1));
+      const quantity = Number(item.quantity || 1);
+      const stockDeductQty = Number(item.stock_deduct_qty ?? item.stockDeductQty ?? (quantity * multiplier));
+      const unitPrice = Number(item.price ?? item.unit_price ?? item.unitPrice ?? 0);
+      const subtotal = Number(item.subtotal ?? (quantity * unitPrice).toFixed(2));
 
-      // Lock product row for update & check stock
+      // Get product info snapshot
       const prodRes = await client.query(
         `SELECT id, name, current_stock::float AS current_stock, cost_price::float AS cost_price FROM products WHERE id = $1 FOR UPDATE`,
         [productId]
       );
 
-      if (prodRes.rows.length === 0) {
-        await client.query('ROLLBACK');
-        return NextResponse.json(
-          { success: false, error: `Product ID ${productId} not found.` },
-          { status: 400 }
-        );
+      let costPriceSnapshot = 0;
+      let prodName = 'Product';
+
+      if (prodRes.rows.length > 0) {
+        costPriceSnapshot = Number(prodRes.rows[0].cost_price || 0);
+        prodName = prodRes.rows[0].name;
       }
-
-      const product = prodRes.rows[0];
-
-      if (stockDeductQty > product.current_stock) {
-        await client.query('ROLLBACK');
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: `Insufficient stock for "${product.name}". Requested ${stockDeductQty} pcs, but only ${product.current_stock} pcs available.` 
-          },
-          { status: 400 }
-        );
-      }
-
-      const costPriceSnapshot = product.cost_price;
 
       // Insert into sale_items (triggers trg_sale_items_deduct_stock)
-      await client.query(
+      const itemInsert = await client.query(
         `INSERT INTO sale_items (sale_id, product_id, unit_type, quantity, multiplier, stock_deduct_qty, unit_price, cost_price_snapshot, subtotal)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING id, sale_id, product_id, unit_type, quantity::float AS quantity, multiplier, stock_deduct_qty::float AS stock_deduct_qty, unit_price::float AS unit_price, cost_price_snapshot::float AS cost_price_snapshot, subtotal::float AS subtotal`,
         [
           saleId,
           productId,
@@ -153,16 +195,7 @@ export async function POST(request: NextRequest) {
         ]
       );
 
-      processedItems.push({
-        productId,
-        name: product.name,
-        unitType,
-        quantity,
-        multiplier,
-        stockDeductQty,
-        unitPrice,
-        subtotal,
-      });
+      processedItems.push(itemInsert.rows[0]);
     }
 
     // Commit Transaction
@@ -172,15 +205,16 @@ export async function POST(request: NextRequest) {
       success: true,
       sale: {
         id: saleId,
-        invoiceNo: saleRes.rows[0].invoice_no,
-        saleDate: saleRes.rows[0].sale_date,
-        customerName,
-        customerPhone,
-        totalAmount,
-        paidAmount,
-        dueAmount: calculatedDue,
-        items: processedItems,
-      }
+        invoice_no: invoiceNo,
+        customer_id: finalCustomerId,
+        total_amount: parsedTotal,
+        paid_amount: parsedPaid,
+        due_amount: parsedDue,
+        sale_date: saleRes.rows[0].sale_date,
+        customer_name: customerName,
+        customer_phone: customerPhone,
+      },
+      sale_items: processedItems,
     });
 
   } catch (error: any) {

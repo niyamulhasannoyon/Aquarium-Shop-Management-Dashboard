@@ -29,7 +29,7 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
   initialProductId,
   onSubmitStock,
 }) => {
-  const { t, formatCurrency, formatNumber } = useLanguage();
+  const { t, formatCurrency, formatNumber, language } = useLanguage();
   const [selectedProductId, setSelectedProductId] = useState<number>(
     initialProductId || products[0]?.id || 1
   );
@@ -92,7 +92,7 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-xs font-semibold uppercase text-slate-400 mb-2">
-              Select Product
+              {language === 'bn' ? 'পণ্য নির্বাচন করুন' : 'Select Product'}
             </label>
             <select
               value={selectedProductId}
@@ -101,7 +101,7 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
             >
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} (Current Stock: {p.current_stock} {p.default_unit}s)
+                  {p.name} ({language === 'bn' ? 'বর্তমান স্টক' : 'Current Stock'}: {formatNumber(p.current_stock)} {p.default_unit || 'Pcs'})
                 </option>
               ))}
             </select>
@@ -110,20 +110,20 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-400 mb-2">
-                Restock Quantity
+                {t('label.restockQty')}
               </label>
               <input
                 type="number"
                 min="1"
                 value={quantity}
                 onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-indigo-500"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 text-sm font-mono focus:outline-none focus:border-indigo-500"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-400 mb-2">
-                Unit Purchase Cost
+                {t('label.supplierCost')}
               </label>
               <input
                 type="number"
@@ -131,14 +131,14 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
                 step="0.01"
                 value={unitCost}
                 onChange={(e) => setUnitCost(Math.max(0, Number(e.target.value)))}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-indigo-500"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 text-sm font-mono focus:outline-none focus:border-indigo-500"
               />
             </div>
           </div>
 
           <div className="bg-slate-800/80 rounded-xl p-3 border border-slate-700 flex justify-between items-center text-sm">
-            <span className="text-slate-300">Total Purchase Investment:</span>
-            <span className="font-bold text-indigo-400">{formatCurrency(totalInvestment)}</span>
+            <span className="text-slate-300">{t('label.totalInvestment')}:</span>
+            <span className="font-bold text-indigo-400 font-mono">{formatCurrency(totalInvestment)}</span>
           </div>
 
           <div className="flex justify-end space-x-3 pt-3">
@@ -147,13 +147,13 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800"
             >
-              Cancel
+              {t('btn.cancel')}
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white flex items-center shadow-lg shadow-indigo-900/40"
+              className="px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white flex items-center shadow-lg shadow-indigo-900/40 active:scale-95 transition-all"
             >
-              <Check className="w-4 h-4 mr-1.5" /> Confirm Stock Addition
+              <Check className="w-4 h-4 mr-1.5" /> {language === 'bn' ? 'স্টক রিচার্জ নিশ্চিত করুন' : 'Confirm Stock Addition'}
             </button>
           </div>
         </form>

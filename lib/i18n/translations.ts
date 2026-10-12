@@ -286,6 +286,15 @@ export const translations: Record<Language, Record<string, string>> = {
     'modal.newSale.existingCustomersList': 'Existing Customers',
     'modal.newSale.matchingCustomers': 'Matching Customers ({count})',
     'modal.newSale.mobileOptional': 'Mobile Phone Number (Optional)',
+    'modal.newSale.quickFull': 'Full Paid',
+    'modal.newSale.quickDue': 'Zero / Due',
+    'modal.newSale.quickHalf': '50% Paid',
+    'modal.newSale.saleItems': 'Sale Line Items',
+    'modal.newSale.addItem': 'Add Item',
+    'modal.newSale.totalInvoice': 'Total Invoice Amount:',
+    'modal.newSale.paidNow': 'Amount Paid Now:',
+    'modal.newSale.calculatedDue': 'Calculated Due:',
+    'modal.newSale.confirmBtn': 'Confirm & Generate Invoice',
 
     // Toast Notifications & Messages
     'toast.saleSuccess': 'Sale invoice created successfully!',
@@ -580,6 +589,15 @@ export const translations: Record<Language, Record<string, string>> = {
     'modal.newSale.existingCustomersList': 'পূর্বের গ্রাহক',
     'modal.newSale.matchingCustomers': 'মিল পাওয়া গ্রাহক ({count})',
     'modal.newSale.mobileOptional': 'মোবাইল নম্বর (ঐচ্ছিক)',
+    'modal.newSale.quickFull': 'সম্পূর্ণ পরিশোধ',
+    'modal.newSale.quickDue': 'সম্পূর্ণ বাকি (৳০)',
+    'modal.newSale.quickHalf': '৫০% পরিশোধ',
+    'modal.newSale.saleItems': 'বিক্রয় আইটেম তালিকা',
+    'modal.newSale.addItem': 'আইটেম যোগ করুন',
+    'modal.newSale.totalInvoice': 'মোট ইনভয়েস মূল্য:',
+    'modal.newSale.paidNow': 'বর্তমান নগদ পরিশোধ:',
+    'modal.newSale.calculatedDue': 'হিসাবকৃত বকেয়া:',
+    'modal.newSale.confirmBtn': 'নিশ্চিত করুন ও ইনভয়েস তৈরি করুন',
 
     // Toast Notifications & Messages
     'toast.saleSuccess': 'বিক্রয় ইনভয়েস সফলভাবে তৈরি হয়েছে!',

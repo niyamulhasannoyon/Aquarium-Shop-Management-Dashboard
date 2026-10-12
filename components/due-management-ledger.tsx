@@ -225,65 +225,78 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
           </div>
         </div>
 
-        {/* Customer Due Table */}
-        <div className="overflow-x-auto">
-          {customerDueList.length === 0 ? (
-            <div className="p-12 text-center text-slate-500">
-              <User className="w-10 h-10 mx-auto mb-3 opacity-30" />
-              <p className="text-sm font-semibold text-slate-400">{t('khata.noCustomersFound')}</p>
-            </div>
-          ) : (
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800 bg-slate-950/60">
-                  <th className="py-3 px-4">{t('khata.thCustomer')}</th>
-                  <th className="py-3 px-4">{t('khata.thContact')}</th>
-                  <th className="py-3 px-4 text-right">{t('khata.thTotalDue')}</th>
-                  <th className="py-3 px-4 text-center">{t('khata.thStatus')}</th>
-                  <th className="py-3 px-4 text-center">{t('khata.thReminder')}</th>
-                  <th className="py-3 px-4 text-right">{t('khata.thActions')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {customerDueList.map((cust) => {
-                  const hasDue = cust.total_due > 0;
-                  return (
-                    <tr key={cust.id} className="hover:bg-slate-800/40 transition-colors">
-                      {/* Name & Address */}
-                      <td className="py-3 px-4">
+        {/* Customer Due List (Mobile Cards on < md, Desktop Table on >= md) */}
+        {customerDueList.length === 0 ? (
+          <div className="p-8 sm:p-12 text-center text-slate-500">
+            <User className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <p className="text-sm font-semibold text-slate-400">{t('khata.noCustomersFound')}</p>
+          </div>
+        ) : (
+          <>
+            {/* Mobile Card View (screen sizes < md) */}
+            <div className="block md:hidden p-3 space-y-3">
+              {customerDueList.map((cust) => {
+                const hasDue = cust.total_due > 0;
+                return (
+                  <div
+                    key={cust.id}
+                    className="p-3.5 bg-slate-950/70 rounded-xl border border-slate-800 space-y-3 shadow-md"
+                  >
+                    {/* Customer Header & Due Amount */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
                         <button
                           onClick={() => onOpenCustomerProfile(cust.id)}
-                          className="font-bold text-slate-100 hover:text-purple-400 text-xs text-left transition-colors flex items-center"
+                          className="font-bold text-sm text-white hover:text-purple-400 text-left transition-colors flex items-center"
                         >
-                          <User className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
-                          {cust.name}
+                          <User className="w-3.5 h-3.5 mr-1.5 text-purple-400 shrink-0" />
+                          <span className="truncate">{cust.name}</span>
                         </button>
                         {cust.address && (
-                          <div className="text-[10px] text-slate-400 mt-0.5 truncate pl-5">
+                          <div className="text-[11px] text-slate-400 truncate pl-5 mt-0.5">
                             {cust.address}
                           </div>
                         )}
-                      </td>
+                      </div>
 
-                      {/* Contact Phone */}
-                      <td className="py-3 px-4 font-mono text-slate-300">
-                        <a href={`tel:${cust.phone}`} className="hover:text-purple-300 flex items-center">
-                          <Phone className="w-3 h-3 mr-1 text-slate-500" />
+                      <div className="text-right shrink-0">
+                        {hasDue ? (
+                          <div className="font-mono font-black text-rose-400 text-sm sm:text-base">
+                            {formatCurrency(cust.total_due)}
+                          </div>
+                        ) : (
+                          <div className="font-mono text-emerald-400 text-xs font-semibold">
+                            {formatCurrency(0)} ({t('khata.paidBadge')})
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Contact & Status Row */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80 text-xs">
+                      <div className="flex items-center space-x-2">
+                        <a
+                          href={`tel:${cust.phone}`}
+                          className="font-mono text-slate-300 hover:text-white flex items-center bg-slate-900 px-2 py-1 rounded-lg border border-slate-800"
+                        >
+                          <Phone className="w-3 h-3 mr-1 text-slate-400" />
                           {cust.phone}
                         </a>
-                      </td>
 
-                      {/* Total Due Amount */}
-                      <td className="py-3 px-4 text-right font-mono font-bold">
-                        {hasDue ? (
-                          <span className="text-rose-400 text-sm">{formatCurrency(cust.total_due)}</span>
-                        ) : (
-                          <span className="text-emerald-400 text-xs">{formatCurrency(0)} ({t('khata.paidBadge')})</span>
+                        {hasDue && (
+                          <a
+                            href={formatWhatsAppUrl(cust.phone, cust.name, cust.total_due)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center space-x-1 px-2 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-400 text-[11px] font-semibold transition-all"
+                          >
+                            <MessageSquare className="w-3 h-3 mr-1" />
+                            <span>WhatsApp</span>
+                          </a>
                         )}
-                      </td>
+                      </div>
 
-                      {/* Status Badge */}
-                      <td className="py-3 px-4 text-center">
+                      <div>
                         {cust.total_due > 2000 ? (
                           <span className="inline-flex items-center text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/30">
                             <AlertCircle className="w-3 h-3 mr-1" /> {t('khata.highDueBadge')}
@@ -297,56 +310,150 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
                             <CheckCircle2 className="w-3 h-3 mr-1" /> {t('khata.clearBadge')}
                           </span>
                         )}
-                      </td>
+                      </div>
+                    </div>
 
-                      {/* WhatsApp Reminder Button */}
-                      <td className="py-3 px-4 text-center">
-                        {hasDue ? (
-                          <a
-                            href={formatWhatsAppUrl(cust.phone, cust.name, cust.total_due)}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-400 text-[11px] font-semibold transition-all"
-                          >
-                            <MessageSquare className="w-3.5 h-3.5" />
-                            <span>{t('khata.sendReminder')}</span>
-                          </a>
-                        ) : (
-                          <span className="text-slate-600 text-[11px]">-</span>
-                        )}
-                      </td>
+                    {/* Actions Row */}
+                    <div className="flex items-center space-x-2 pt-1">
+                      {hasDue && (
+                        <button
+                          onClick={() => onOpenCollectDue(cust.id)}
+                          className="flex-1 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition-colors shadow-sm flex items-center justify-center space-x-1 active:scale-98"
+                        >
+                          <CreditCard className="w-3.5 h-3.5 mr-1" />
+                          <span>{t('khata.collectDue')}</span>
+                        </button>
+                      )}
+                      <button
+                        onClick={() => onOpenCustomerProfile(cust.id)}
+                        className={`${hasDue ? 'flex-1' : 'w-full'} py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors flex items-center justify-center space-x-1 border border-slate-700/80 active:scale-98`}
+                      >
+                        <FileText className="w-3.5 h-3.5 mr-1" />
+                        <span>{t('khata.ledger')}</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
 
-                      {/* Actions */}
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end space-x-2">
-                          {hasDue && (
-                            <button
-                              onClick={() => onOpenCollectDue(cust.id)}
-                              className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold transition-colors shadow-sm"
-                            >
-                              {t('khata.collectDue')}
-                            </button>
-                          )}
+            {/* Desktop Table View (screen sizes >= md) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800 bg-slate-950/60">
+                    <th className="py-3 px-4">{t('khata.thCustomer')}</th>
+                    <th className="py-3 px-4">{t('khata.thContact')}</th>
+                    <th className="py-3 px-4 text-right">{t('khata.thTotalDue')}</th>
+                    <th className="py-3 px-4 text-center">{t('khata.thStatus')}</th>
+                    <th className="py-3 px-4 text-center">{t('khata.thReminder')}</th>
+                    <th className="py-3 px-4 text-right">{t('khata.thActions')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {customerDueList.map((cust) => {
+                    const hasDue = cust.total_due > 0;
+                    return (
+                      <tr key={cust.id} className="hover:bg-slate-800/40 transition-colors">
+                        {/* Name & Address */}
+                        <td className="py-3 px-4">
                           <button
                             onClick={() => onOpenCustomerProfile(cust.id)}
-                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold transition-colors flex items-center"
+                            className="font-bold text-slate-100 hover:text-purple-400 text-xs text-left transition-colors flex items-center"
                           >
-                            <FileText className="w-3 h-3 mr-1" />
-                            {t('khata.ledger')}
+                            <User className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
+                            {cust.name}
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
+                          {cust.address && (
+                            <div className="text-[10px] text-slate-400 mt-0.5 truncate pl-5">
+                              {cust.address}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Contact Phone */}
+                        <td className="py-3 px-4 font-mono text-slate-300">
+                          <a href={`tel:${cust.phone}`} className="hover:text-purple-300 flex items-center">
+                            <Phone className="w-3 h-3 mr-1 text-slate-500" />
+                            {cust.phone}
+                          </a>
+                        </td>
+
+                        {/* Total Due Amount */}
+                        <td className="py-3 px-4 text-right font-mono font-bold">
+                          {hasDue ? (
+                            <span className="text-rose-400 text-sm">{formatCurrency(cust.total_due)}</span>
+                          ) : (
+                            <span className="text-emerald-400 text-xs">{formatCurrency(0)} ({t('khata.paidBadge')})</span>
+                          )}
+                        </td>
+
+                        {/* Status Badge */}
+                        <td className="py-3 px-4 text-center">
+                          {cust.total_due > 2000 ? (
+                            <span className="inline-flex items-center text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/30">
+                              <AlertCircle className="w-3 h-3 mr-1" /> {t('khata.highDueBadge')}
+                            </span>
+                          ) : cust.total_due > 0 ? (
+                            <span className="inline-flex items-center text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
+                              {t('khata.pendingDueBadge')}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                              <CheckCircle2 className="w-3 h-3 mr-1" /> {t('khata.clearBadge')}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* WhatsApp Reminder Button */}
+                        <td className="py-3 px-4 text-center">
+                          {hasDue ? (
+                            <a
+                              href={formatWhatsAppUrl(cust.phone, cust.name, cust.total_due)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-400 text-[11px] font-semibold transition-all"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              <span>{t('khata.sendReminder')}</span>
+                            </a>
+                          ) : (
+                            <span className="text-slate-600 text-[11px]">-</span>
+                          )}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end space-x-2">
+                            {hasDue && (
+                              <button
+                                onClick={() => onOpenCollectDue(cust.id)}
+                                className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold transition-colors shadow-sm"
+                              >
+                                {t('khata.collectDue')}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => onOpenCustomerProfile(cust.id)}
+                              className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold transition-colors flex items-center"
+                            >
+                              <FileText className="w-3 h-3 mr-1" />
+                              {t('khata.ledger')}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Due Collection Log History */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex items-center space-x-2">
             <History className="w-4 h-4 text-amber-400" />
@@ -357,48 +464,86 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          {dueCollections.length === 0 ? (
-            <div className="py-6 text-center text-slate-500 text-xs">
-              {t('khata.noReceipts')}
-            </div>
-          ) : (
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800">
-                  <th className="py-2 px-3">{t('khata.thReceiptDate')}</th>
-                  <th className="py-2 px-3">{t('khata.thCustomer')}</th>
-                  <th className="py-2 px-3 text-right">{t('khata.thAmountPaid')}</th>
-                  <th className="py-2 px-3">{t('khata.thNote')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {dueCollections.map((col) => {
-                  const cust = customers.find((c) => c.id === col.customer_id);
-                  return (
-                    <tr key={col.id} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="py-2.5 px-3 font-mono">
-                        <div className="font-bold text-slate-200">REC-{col.id.toString().padStart(4, '0')}</div>
-                        <div className="text-[10px] text-slate-500">
-                          {formatDate(col.payment_date)}
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-3 font-semibold text-slate-200">
-                        {cust ? cust.name : 'Unknown Customer'}
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-400">
+        {dueCollections.length === 0 ? (
+          <div className="py-6 text-center text-slate-500 text-xs">
+            {t('khata.noReceipts')}
+          </div>
+        ) : (
+          <>
+            {/* Mobile Receipts View (< md) */}
+            <div className="block md:hidden space-y-2.5">
+              {dueCollections.map((col) => {
+                const cust = customers.find((c) => c.id === col.customer_id);
+                return (
+                  <div
+                    key={col.id}
+                    className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs font-bold text-slate-200">
+                        REC-{col.id.toString().padStart(4, '0')}
+                      </span>
+                      <span className="font-mono font-bold text-emerald-400 text-xs">
                         {formatCurrency(col.amount_paid)}
-                      </td>
-                      <td className="py-2.5 px-3 text-slate-400 italic">
-                        {col.note || 'Cash due collection payment'}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-slate-300">
+                      <span className="font-medium text-white">
+                        {cust ? cust.name : 'Unknown Customer'}
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-mono">
+                        {formatDate(col.payment_date)}
+                      </span>
+                    </div>
+                    {col.note && (
+                      <div className="text-[11px] text-slate-400 italic pt-1 border-t border-slate-800/60">
+                        {col.note}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Receipts Table (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                    <th className="py-2 px-3">{t('khata.thReceiptDate')}</th>
+                    <th className="py-2 px-3">{t('khata.thCustomer')}</th>
+                    <th className="py-2 px-3 text-right">{t('khata.thAmountPaid')}</th>
+                    <th className="py-2 px-3">{t('khata.thNote')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {dueCollections.map((col) => {
+                    const cust = customers.find((c) => c.id === col.customer_id);
+                    return (
+                      <tr key={col.id} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="py-2.5 px-3 font-mono">
+                          <div className="font-bold text-slate-200">REC-{col.id.toString().padStart(4, '0')}</div>
+                          <div className="text-[10px] text-slate-500">
+                            {formatDate(col.payment_date)}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3 font-semibold text-slate-200">
+                          {cust ? cust.name : 'Unknown Customer'}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-400">
+                          {formatCurrency(col.amount_paid)}
+                        </td>
+                        <td className="py-2.5 px-3 text-slate-400 italic">
+                          {col.note || 'Cash due collection payment'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
     </div>

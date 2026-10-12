@@ -314,7 +314,7 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
       {/* Activity Log Controls (Search & Activity Type Tabs) */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         {/* Activity Type Filters */}
-        <div className="flex items-center space-x-1 overflow-x-auto pb-1 sm:pb-0">
+        <div className="flex items-center space-x-1 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           <button
             onClick={() => setSelectedType('all')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
@@ -392,8 +392,115 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
                 </div>
               </div>
 
-              {/* Day's Event Table */}
-              <div className="divide-y divide-slate-800/60 overflow-x-auto">
+              {/* Mobile Card View (screen sizes < md) */}
+              <div className="block md:hidden p-3 space-y-2.5">
+                {events.map((evt) => (
+                  <div
+                    key={evt.id}
+                    className="p-3 bg-slate-950/60 rounded-xl border border-slate-800/90 space-y-2 shadow-sm"
+                  >
+                    {/* Top Row: Ref, Time & Type Badge */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-mono font-bold text-xs text-white">
+                          {evt.ref}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {new Date(evt.dateStr).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                      <div>
+                        {evt.type === 'sale' && (
+                          <span className="inline-flex items-center text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                            <ArrowUpRight className="w-3 h-3 mr-1" /> {t('ledger.badgeSell')}
+                          </span>
+                        )}
+                        {evt.type === 'purchase' && (
+                          <span className="inline-flex items-center text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                            <ArrowDownLeft className="w-3 h-3 mr-1" /> {t('ledger.badgeBuy')}
+                          </span>
+                        )}
+                        {evt.type === 'collection' && (
+                          <span className="inline-flex items-center text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                            <CreditCard className="w-3 h-3 mr-1" /> {t('ledger.badgeDue')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Party & Description */}
+                    <div>
+                      <div className="text-xs font-semibold text-slate-100">
+                        {evt.partyName}
+                      </div>
+                      {evt.itemsSummary && (
+                        <div className="text-[11px] text-slate-400 line-clamp-2 mt-0.5">
+                          {evt.itemsSummary}
+                        </div>
+                      )}
+                      {evt.note && (
+                        <div className="text-[10px] text-slate-500 italic mt-0.5">
+                          {evt.note}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Financial Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800/70 text-[11px] font-mono">
+                      <div className="bg-slate-900/80 p-1.5 rounded-lg border border-slate-800">
+                        <span className="text-[10px] text-slate-500 block uppercase font-sans font-semibold">
+                          {t('ledger.tableTotal')}
+                        </span>
+                        <span className="font-bold text-white">
+                          {formatCurrency(evt.totalAmount)}
+                        </span>
+                      </div>
+                      <div className="bg-slate-900/80 p-1.5 rounded-lg border border-slate-800">
+                        <span className="text-[10px] text-slate-500 block uppercase font-sans font-semibold">
+                          {t('ledger.tablePaid')}
+                        </span>
+                        <span className="font-semibold text-emerald-400">
+                          {formatCurrency(evt.paidAmount)}
+                        </span>
+                      </div>
+                      <div className="bg-slate-900/80 p-1.5 rounded-lg border border-slate-800">
+                        <span className="text-[10px] text-slate-500 block uppercase font-sans font-semibold">
+                          {t('ledger.tableDue')}
+                        </span>
+                        <span>
+                          {evt.dueAmount > 0 ? (
+                            <span className="font-bold text-rose-400">
+                              {formatCurrency(evt.dueAmount)}
+                            </span>
+                          ) : (
+                            <span className="text-slate-500">-</span>
+                          )}
+                        </span>
+                      </div>
+                      <div className="bg-slate-900/80 p-1.5 rounded-lg border border-slate-800">
+                        <span className="text-[10px] text-slate-500 block uppercase font-sans font-semibold">
+                          {t('ledger.tableProfit')}
+                        </span>
+                        <span>
+                          {evt.type === 'sale' && evt.profit !== undefined ? (
+                            <span className="font-bold text-emerald-400">
+                              +{formatCurrency(evt.profit)}
+                            </span>
+                          ) : (
+                            <span className="text-slate-500">-</span>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table View (screen sizes >= md) */}
+              <div className="hidden md:block divide-y divide-slate-800/60 overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-800/80 bg-slate-950/40">

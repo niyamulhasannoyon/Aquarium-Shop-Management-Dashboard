@@ -2,9 +2,21 @@ import { Pool } from 'pg';
 
 const connectionString = process.env.DATABASE_URL || 'postgres://niyamulhasan@localhost:5432/niloy_friend_shop';
 
-const pool = new Pool({
-  connectionString,
-});
+// Use a global pool instance in development to avoid exhausting PostgreSQL connections during hot reloading
+const globalForPg = globalThis as unknown as { pgPool?: Pool };
+
+const pool =
+  globalForPg.pgPool ??
+  new Pool({
+    connectionString,
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+  });
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPg.pgPool = pool;
+}
 
 export default pool;
 

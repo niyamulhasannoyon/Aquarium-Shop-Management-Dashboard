@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { X, CreditCard, Check } from 'lucide-react';
 import { Customer } from '@/types/executive';
 import { formatCurrency } from '@/lib/calculations';
+import { useLanguage } from '@/context/language-context';
 
 interface CollectDueModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export const CollectDueModal: React.FC<CollectDueModalProps> = ({
   customers,
   onSubmitCollection,
 }) => {
+  const { t, formatCurrency, language } = useLanguage();
   const dueCustomers = customers.filter((c) => c.total_due > 0);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number>(
     dueCustomers[0]?.id || customers[0]?.id || 1
@@ -60,7 +62,9 @@ export const CollectDueModal: React.FC<CollectDueModalProps> = ({
             <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
               <CreditCard className="w-5 h-5" />
             </div>
-            <h3 className="text-lg font-bold text-white">Collect Customer Outstanding Due</h3>
+            <h3 className="text-lg font-bold text-white">
+              {language === 'bn' ? 'কাস্টমারের বকেয়া টাকা আদায়' : 'Collect Customer Outstanding Due'}
+            </h3>
           </div>
           <button
             onClick={onClose}
@@ -73,7 +77,7 @@ export const CollectDueModal: React.FC<CollectDueModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-xs font-semibold uppercase text-slate-400 mb-2">
-              Select Customer
+              {language === 'bn' ? 'কাস্টমার নির্বাচন করুন' : 'Select Customer'}
             </label>
             <select
               value={selectedCustomerId}
@@ -82,7 +86,7 @@ export const CollectDueModal: React.FC<CollectDueModalProps> = ({
             >
               {customers.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} - Outstanding Due: {formatCurrency(c.total_due)}
+                  {c.name} - {language === 'bn' ? 'বকেয়া' : 'Outstanding Due'}: {formatCurrency(c.total_due)}
                 </option>
               ))}
             </select>
@@ -90,7 +94,7 @@ export const CollectDueModal: React.FC<CollectDueModalProps> = ({
 
           <div>
             <label className="block text-xs font-semibold uppercase text-slate-400 mb-2">
-              Collection Amount (BDT)
+              {language === 'bn' ? 'আদায়কৃত টাকার পরিমাণ' : 'Collection Amount (BDT)'}
             </label>
             <input
               type="number"
@@ -99,13 +103,13 @@ export const CollectDueModal: React.FC<CollectDueModalProps> = ({
               step="0.01"
               value={amount}
               onChange={(e) => setAmount(Number(e.target.value))}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-amber-400 font-bold text-lg focus:outline-none focus:border-amber-500"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-amber-400 font-bold text-lg font-mono focus:outline-none focus:border-amber-500"
             />
           </div>
 
           <div>
             <label className="block text-xs font-semibold uppercase text-slate-400 mb-2">
-              Payment Note / Reference
+              {language === 'bn' ? 'পেমেন্ট নোট / রেফারেন্স' : 'Payment Note / Reference'}
             </label>
             <input
               type="text"
@@ -118,8 +122,10 @@ export const CollectDueModal: React.FC<CollectDueModalProps> = ({
 
           {selectedCustomer && (
             <div className="bg-slate-800/80 rounded-xl p-3 border border-slate-700 flex justify-between items-center text-xs">
-              <span className="text-slate-300">Remaining Customer Due:</span>
-              <span className="font-bold text-emerald-400">
+              <span className="text-slate-300">
+                {language === 'bn' ? 'অবশিষ্ট বকেয়া' : 'Remaining Customer Due'}:
+              </span>
+              <span className="font-bold text-emerald-400 font-mono">
                 {formatCurrency(Math.max(0, selectedCustomer.total_due - amount))}
               </span>
             </div>
@@ -131,13 +137,13 @@ export const CollectDueModal: React.FC<CollectDueModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800"
             >
-              Cancel
+              {t('btn.cancel')}
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white flex items-center shadow-lg shadow-amber-900/40"
+              className="px-5 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white flex items-center shadow-lg shadow-amber-900/40 active:scale-95 transition-all"
             >
-              <Check className="w-4 h-4 mr-1.5" /> Record Collection Payment
+              <Check className="w-4 h-4 mr-1.5" /> {language === 'bn' ? 'টাকা জমা রসিদ সংরক্ষণ করুন' : 'Record Collection Payment'}
             </button>
           </div>
         </form>

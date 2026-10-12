@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { X, FolderPlus, Check } from 'lucide-react';
+import { useLanguage } from '@/context/language-context';
 
 interface AddCategoryModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ export const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
   onClose,
   onSubmitCategory,
 }) => {
+  const { t, language } = useLanguage();
   const [name, setName] = useState('');
 
   if (!isOpen) return null;
@@ -35,7 +37,9 @@ export const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
             <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
               <FolderPlus className="w-5 h-5" />
             </div>
-            <h3 className="text-lg font-bold text-white">Add New Category</h3>
+            <h3 className="text-lg font-bold text-white">
+              {t('modal.addCategory.title')}
+            </h3>
           </div>
           <button
             onClick={onClose}
@@ -48,12 +52,12 @@ export const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-xs font-semibold uppercase text-slate-400 mb-1.5">
-              Category Name
+              {t('label.category')}
             </label>
             <input
               type="text"
               required
-              placeholder="e.g. Fish / Electronic Product"
+              placeholder={language === 'bn' ? 'যেমন: মাছ / ফিল্টার / খাবার' : 'e.g. Guppy Fish / Filter / Food'}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-purple-500"
@@ -66,13 +70,13 @@ export const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800"
             >
-              Cancel
+              {t('btn.cancel')}
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white flex items-center shadow-lg shadow-purple-900/40"
+              className="px-5 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white flex items-center shadow-lg shadow-purple-900/40 active:scale-95 transition-all"
             >
-              <Check className="w-4 h-4 mr-1.5" /> Save Category
+              <Check className="w-4 h-4 mr-1.5" /> {language === 'bn' ? 'ক্যাটাগরি সংরক্ষণ করুন' : 'Save Category'}
             </button>
           </div>
         </form>

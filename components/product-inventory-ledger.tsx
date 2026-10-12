@@ -14,6 +14,7 @@ import {
   Tag,
   ArrowUpDown,
   Filter,
+  Trash2,
 } from 'lucide-react';
 import { Product, Category } from '@/types/executive';
 import { useLanguage } from '@/context/language-context';
@@ -24,6 +25,7 @@ interface ProductInventoryLedgerProps {
   onEditProduct: (product: Product) => void;
   onOpenAddStock: (productId?: number) => void;
   onOpenAddProduct: () => void;
+  onDeleteProduct?: (productId: number) => void;
 }
 
 export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
@@ -32,6 +34,7 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
   onEditProduct,
   onOpenAddStock,
   onOpenAddProduct,
+  onDeleteProduct,
 }) => {
   const { t, formatCurrency, formatNumber } = useLanguage();
 
@@ -237,10 +240,10 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
           </div>
 
           {/* Stock Filter */}
-          <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 md:pb-0">
+          <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none touch-pan-x">
             <button
               onClick={() => setStockFilter('all')}
-              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all active:scale-95 ${
                 stockFilter === 'all'
                   ? 'bg-teal-600 text-white shadow-md'
                   : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
@@ -250,7 +253,7 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
             </button>
             <button
               onClick={() => setStockFilter('in_stock')}
-              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all active:scale-95 ${
                 stockFilter === 'in_stock'
                   ? 'bg-emerald-600 text-white shadow-md'
                   : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
@@ -260,7 +263,7 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
             </button>
             <button
               onClick={() => setStockFilter('low_stock')}
-              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all active:scale-95 ${
                 stockFilter === 'low_stock'
                   ? 'bg-amber-600 text-white shadow-md'
                   : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
@@ -270,7 +273,7 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
             </button>
             <button
               onClick={() => setStockFilter('out_of_stock')}
-              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all active:scale-95 ${
                 stockFilter === 'out_of_stock'
                   ? 'bg-rose-600 text-white shadow-md'
                   : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
@@ -299,14 +302,14 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
         </div>
 
         {/* Category Filter Badges */}
-        <div className="flex items-center space-x-1.5 overflow-x-auto pt-2 border-t border-slate-800/80 pb-1">
+        <div className="flex items-center space-x-1.5 overflow-x-auto pt-2 border-t border-slate-800/80 pb-1 scrollbar-none touch-pan-x">
           <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider mr-1 shrink-0 flex items-center">
             <Tag className="w-3 h-3 mr-1" />
             Cat:
           </span>
           <button
             onClick={() => setSelectedCategoryId('all')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all active:scale-95 ${
               selectedCategoryId === 'all'
                 ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40 font-bold'
                 : 'bg-slate-950/60 text-slate-400 hover:text-white border border-slate-800'
@@ -320,7 +323,7 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategoryId(cat.id)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all active:scale-95 ${
                   selectedCategoryId === cat.id
                     ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40 font-bold'
                     : 'bg-slate-950/60 text-slate-400 hover:text-white border border-slate-800'
@@ -458,6 +461,19 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
                         >
                           <PackagePlus className="w-4 h-4" />
                         </button>
+                        {onDeleteProduct && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Are you sure you want to delete "${p.name}"?`)) {
+                                onDeleteProduct(p.id);
+                              }
+                            }}
+                            title="Delete Product"
+                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-white border border-rose-500/20 transition-all"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -541,18 +557,31 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
                 <div className="flex items-center space-x-2 pt-1 border-t border-slate-800">
                   <button
                     onClick={() => onEditProduct(p)}
-                    className="flex-1 py-2 bg-teal-600/20 hover:bg-teal-600/30 border border-teal-500/30 text-teal-300 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all"
+                    className="flex-1 py-2 bg-teal-600/20 hover:bg-teal-600/30 border border-teal-500/30 text-teal-300 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all min-h-[40px] active:scale-95"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                     <span>{t('btn.edit')}</span>
                   </button>
                   <button
                     onClick={() => onOpenAddStock(p.id)}
-                    className="flex-1 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all"
+                    className="flex-1 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all min-h-[40px] active:scale-95"
                   >
                     <PackagePlus className="w-3.5 h-3.5" />
                     <span>{t('quickActions.addStock')}</span>
                   </button>
+                  {onDeleteProduct && (
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Are you sure you want to delete "${p.name}"?`)) {
+                          onDeleteProduct(p.id);
+                        }
+                      }}
+                      className="p-2 bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/30 text-rose-300 rounded-xl text-xs font-bold flex items-center justify-center transition-all min-h-[40px] min-w-[40px] active:scale-95"
+                      title="Delete Product"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             );

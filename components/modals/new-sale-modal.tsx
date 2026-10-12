@@ -535,14 +535,14 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
           <div>
             <div className="flex flex-wrap items-center justify-between gap-1.5 mb-2">
               <label className="text-xs font-semibold uppercase text-slate-400 flex items-center">
-                Sale Line Items
+                {t('modal.newSale.saleItems')}
               </label>
               <button
                 type="button"
                 onClick={handleAddCartRow}
                 className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20 active:scale-95 transition-all"
               >
-                <Plus className="w-3.5 h-3.5 mr-1" /> Add Item
+                <Plus className="w-3.5 h-3.5 mr-1" /> {t('modal.newSale.addItem')}
               </button>
             </div>
 
@@ -637,31 +637,57 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
           </div>
 
           {/* Totals & Payments */}
-          <div className="bg-slate-800/80 rounded-xl p-3.5 space-y-2 border border-slate-700">
+          <div className="bg-slate-800/80 rounded-xl p-3.5 space-y-2.5 border border-slate-700">
             <div className="flex justify-between text-xs sm:text-sm text-slate-300">
-              <span>Total Invoice Amount:</span>
-              <span className="font-bold text-white">{formatCurrency(totalAmount)}</span>
+              <span>{t('modal.newSale.totalInvoice')}</span>
+              <span className="font-bold text-white font-mono">{formatCurrency(totalAmount)}</span>
             </div>
 
-            <div className="flex items-center justify-between text-xs sm:text-sm">
-              <span className="text-slate-300">Amount Paid Now:</span>
-              <div className="w-32 sm:w-36">
-                <input
-                  type="number"
-                  min="0"
-                  max={totalAmount}
-                  step="0.01"
-                  placeholder={totalAmount.toString()}
-                  value={paidAmount}
-                  onChange={(e) => setPaidAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-emerald-400 font-bold text-right focus:outline-none"
-                />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs sm:text-sm">
+              <span className="text-slate-300">{t('modal.newSale.paidNow')}</span>
+              <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2">
+                {/* 1-Tap Quick Pay Cashier Buttons */}
+                <div className="flex items-center space-x-1">
+                  <button
+                    type="button"
+                    onClick={() => setPaidAmount(totalAmount)}
+                    className="px-2 py-1 rounded-lg text-[10px] font-bold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition-all active:scale-95"
+                  >
+                    {t('modal.newSale.quickFull')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaidAmount(0)}
+                    className="px-2 py-1 rounded-lg text-[10px] font-bold bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 transition-all active:scale-95"
+                  >
+                    {t('modal.newSale.quickDue')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaidAmount(Math.round(totalAmount / 2))}
+                    className="px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 transition-all active:scale-95"
+                  >
+                    {t('modal.newSale.quickHalf')}
+                  </button>
+                </div>
+                <div className="w-28 sm:w-32">
+                  <input
+                    type="number"
+                    min="0"
+                    max={totalAmount}
+                    step="0.01"
+                    placeholder={totalAmount.toString()}
+                    value={paidAmount}
+                    onChange={(e) => setPaidAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-emerald-400 font-bold text-right font-mono focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
               </div>
             </div>
 
             <div className="flex justify-between text-xs sm:text-sm pt-2 border-t border-slate-700">
-              <span className="text-slate-300">Calculated Due:</span>
-              <span className={`font-bold ${dueAmount > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+              <span className="text-slate-300">{t('modal.newSale.calculatedDue')}</span>
+              <span className={`font-bold font-mono ${dueAmount > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
                 {formatCurrency(dueAmount)}
               </span>
             </div>
@@ -673,7 +699,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
               onClick={onClose}
               className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800"
             >
-              Cancel
+              {t('btn.cancel')}
             </button>
             <button
               type="submit"

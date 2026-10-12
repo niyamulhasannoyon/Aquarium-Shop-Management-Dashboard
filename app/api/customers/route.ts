@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const queryStr = searchParams.get('q') || '';
+    const all = searchParams.get('all') === 'true' || !queryStr.trim();
     
     let sql = `
       SELECT 
@@ -14,7 +15,8 @@ export async function GET(request: NextRequest) {
         name, 
         phone, 
         address, 
-        total_due::float AS total_due
+        total_due::float AS total_due,
+        created_at
       FROM customers
     `;
     const params: any[] = [];
@@ -24,7 +26,10 @@ export async function GET(request: NextRequest) {
       params.push(`%${queryStr.trim()}%`);
     }
     
-    sql += ` ORDER BY name ASC LIMIT 20`;
+    sql += ` ORDER BY name ASC`;
+    if (!all) {
+      sql += ` LIMIT 20`;
+    }
     
     const result = await pool.query(sql, params);
     return NextResponse.json({ success: true, customers: result.rows });
@@ -54,7 +59,9 @@ export async function POST(request: NextRequest) {
     const initialDueAmount = Number(initial_due) || 0;
     
     const result = await pool.query(
-      `INSERT INTO customers (name, phone, address, total_due) VALUES ($1, $2, $3, $4) RETURNING id, name, phone, address, total_due::float AS total_due`,
+      `INSERT INTO customers (name, phone, address, total_due, created_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       RETURNING id, name, phone, address, total_due::float AS total_due, created_at`,
       [name.trim(), cleanPhone, cleanAddress, initialDueAmount]
     );
     
