@@ -139,17 +139,17 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center flex-wrap gap-2.5">
+        <div className="flex items-center flex-wrap gap-2.5 w-full sm:w-auto">
           <button
             onClick={onOpenAddProduct}
-            className="px-3.5 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center space-x-1.5 shadow-md shadow-teal-950 transition-all"
+            className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center space-x-1.5 shadow-md shadow-teal-950 transition-all min-h-[44px]"
           >
             <PlusCircle className="w-4 h-4" />
             <span>+ {t('quickActions.addProduct')}</span>
           </button>
           <button
             onClick={() => onOpenAddStock()}
-            className="px-3.5 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 hover:text-white rounded-xl text-xs sm:text-sm font-semibold flex items-center space-x-1.5 transition-all shadow-md"
+            className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 hover:text-white rounded-xl text-xs sm:text-sm font-semibold flex items-center space-x-1.5 transition-all shadow-md min-h-[44px]"
           >
             <PackagePlus className="w-4 h-4" />
             <span>{t('quickActions.addStock')}</span>
@@ -284,12 +284,12 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
           </div>
 
           {/* Sort Selector */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 w-full md:w-auto">
             <ArrowUpDown className="w-4 h-4 text-slate-400 shrink-0" />
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-500 transition-colors"
+              className="w-full md:w-auto bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-500 transition-colors min-h-[38px]"
             >
               <option value="id">ID (#1 - #99)</option>
               <option value="name">Name (A-Z)</option>

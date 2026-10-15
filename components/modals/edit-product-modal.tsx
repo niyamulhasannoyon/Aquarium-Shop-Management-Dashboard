@@ -91,10 +91,10 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
   const totalStockValue = currentStock * costPrice;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 my-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-2.5 sm:p-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90dvh] sm:max-h-[88vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/50">
+        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-800 bg-slate-900/50 shrink-0">
           <div className="flex items-center space-x-2.5">
             <div className="p-2 rounded-xl bg-teal-500/10 text-teal-400 border border-teal-500/20">
               <Edit3 className="w-5 h-5" />
@@ -117,14 +117,14 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
         </div>
 
         {error && (
-          <div className="mx-6 mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center space-x-2">
+          <div className="mx-5 sm:mx-6 mt-3 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center space-x-2 shrink-0">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
           {/* Product Name */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
@@ -217,7 +217,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
           </div>
 
           {/* Cost Price & Selling Price */}
-          <div className="grid grid-cols-2 gap-3.5 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                 {t('label.costPrice')}
@@ -230,7 +230,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
                   step="0.01"
                   value={costPrice || ''}
                   onChange={(e) => setCostPrice(Math.max(0, parseFloat(e.target.value) || 0))}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-8 pr-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500 transition-colors shadow-inner"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-8 pr-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500 transition-colors shadow-inner min-h-[38px]"
                   placeholder="0"
                 />
               </div>
@@ -248,7 +248,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
                   step="0.01"
                   value={sellingPrice || ''}
                   onChange={(e) => setSellingPrice(Math.max(0, parseFloat(e.target.value) || 0))}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-8 pr-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500 transition-colors shadow-inner"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-8 pr-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500 transition-colors shadow-inner min-h-[38px]"
                   placeholder="0"
                 />
               </div>
@@ -271,7 +271,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
               step="1"
               value={currentStock || ''}
               onChange={(e) => setCurrentStock(Math.max(0, parseFloat(e.target.value) || 0))}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-teal-500 transition-colors shadow-inner font-mono font-bold"
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-teal-500 transition-colors shadow-inner font-mono font-bold min-h-[38px]"
               placeholder="0"
             />
             <p className="text-[10px] text-slate-500 mt-1">
@@ -293,17 +293,17 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-800">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-3 border-t border-slate-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors min-h-[44px] flex items-center justify-center"
             >
               {t('btn.cancel')}
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 transition-all shadow-lg shadow-teal-950 flex items-center space-x-2"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 transition-all shadow-lg shadow-teal-950 flex items-center justify-center space-x-2 min-h-[44px] active:scale-95"
             >
               <Check className="w-4 h-4" />
               <span>{t('btn.save')}</span>

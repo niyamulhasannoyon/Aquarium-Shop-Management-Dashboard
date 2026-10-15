@@ -331,13 +331,13 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-2.5 sm:p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[92vh]">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90dvh] sm:max-h-[88vh]">
         <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-slate-800 bg-slate-900/50 shrink-0">
           <div className="flex items-center space-x-2">
             <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               <ShoppingBag className="w-5 h-5" />
             </div>
-            <h3 className="text-base sm:text-lg font-bold text-white">Create New Sale Invoice</h3>
+            <h3 className="text-base sm:text-lg font-bold text-white">{t('modal.newSale.title')}</h3>
           </div>
           <button
             onClick={onClose}
@@ -560,14 +560,22 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
                         onChange={(e) => handleProductChange(idx, Number(e.target.value))}
                         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white"
                       >
-                        {products.map((p) => {
-                          const pStockJora = (p.current_stock / 2).toFixed(1).replace(/\.0$/, '');
-                          return (
-                            <option key={p.id} value={p.id}>
-                              {p.name} (Stock: {p.current_stock} Pcs / {pStockJora} Jora)
-                            </option>
-                          );
-                        })}
+                        {products.length === 0 ? (
+                          <option value="">
+                            {language === 'bn'
+                              ? 'কোনো পণ্য নেই (প্রথমে পণ্য যুক্ত করুন)'
+                              : 'No products available (add product first)'}
+                          </option>
+                        ) : (
+                          products.map((p) => {
+                            const pStockJora = (p.current_stock / 2).toFixed(1).replace(/\.0$/, '');
+                            return (
+                              <option key={p.id} value={p.id}>
+                                {p.name} (Stock: {p.current_stock} Pcs / {pStockJora} Jora)
+                              </option>
+                            );
+                          })
+                        )}
                       </select>
                     </div>
 
@@ -643,34 +651,34 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
               <span className="font-bold text-white font-mono">{formatCurrency(totalAmount)}</span>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs sm:text-sm">
-              <span className="text-slate-300">{t('modal.newSale.paidNow')}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs sm:text-sm">
+              <span className="text-slate-300 font-medium">{t('modal.newSale.paidNow')}</span>
               <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2">
                 {/* 1-Tap Quick Pay Cashier Buttons */}
                 <div className="flex items-center space-x-1">
                   <button
                     type="button"
                     onClick={() => setPaidAmount(totalAmount)}
-                    className="px-2 py-1 rounded-lg text-[10px] font-bold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition-all active:scale-95"
+                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition-all active:scale-95 min-h-[32px]"
                   >
                     {t('modal.newSale.quickFull')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setPaidAmount(0)}
-                    className="px-2 py-1 rounded-lg text-[10px] font-bold bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 transition-all active:scale-95"
+                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 transition-all active:scale-95 min-h-[32px]"
                   >
                     {t('modal.newSale.quickDue')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setPaidAmount(Math.round(totalAmount / 2))}
-                    className="px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 transition-all active:scale-95"
+                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 transition-all active:scale-95 min-h-[32px]"
                   >
                     {t('modal.newSale.quickHalf')}
                   </button>
                 </div>
-                <div className="w-28 sm:w-32">
+                <div className="w-full sm:w-32">
                   <input
                     type="number"
                     min="0"
@@ -679,7 +687,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
                     placeholder={totalAmount.toString()}
                     value={paidAmount}
                     onChange={(e) => setPaidAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-emerald-400 font-bold text-right font-mono focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-emerald-400 font-bold text-right font-mono focus:outline-none focus:border-emerald-500 min-h-[36px]"
                   />
                 </div>
               </div>
@@ -693,19 +701,20 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
             </div>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-2">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800 transition-colors min-h-[44px] flex items-center justify-center"
             >
               {t('btn.cancel')}
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center shadow-lg shadow-emerald-900/40 active:scale-95 transition-all"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-900/40 active:scale-95 transition-all min-h-[44px]"
             >
-              <Check className="w-4 h-4 mr-1.5" /> Confirm & Generate Invoice
+              <Check className="w-4 h-4 mr-1.5" />
+              <span>{language === 'bn' ? 'নিশ্চিত করুন ও ইনভয়েস তৈরি করুন (Confirm & Generate Invoice)' : 'Confirm & Generate Invoice'}</span>
             </button>
           </div>
         </form>

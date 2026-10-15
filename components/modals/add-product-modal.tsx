@@ -83,14 +83,16 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
   const joraStock = (initialStock / 2).toFixed(1).replace(/\.0$/, '');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-2.5 sm:p-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90dvh] sm:max-h-[88vh]">
+        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-800 bg-slate-900/50 shrink-0">
           <div className="flex items-center space-x-2">
             <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
               <PlusCircle className="w-5 h-5" />
             </div>
-            <h3 className="text-lg font-bold text-white">Add New Product</h3>
+            <h3 className="text-base sm:text-lg font-bold text-white">
+              {language === 'bn' ? 'নতুন পণ্য যুক্ত করুন' : 'Add New Product'}
+            </h3>
           </div>
           <button
             onClick={onClose}
@@ -100,7 +102,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
           {/* Title */}
           <div>
             <label className="block text-xs font-semibold uppercase text-slate-400 mb-1.5">
@@ -155,17 +157,21 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 onChange={(e) => setCategoryId(Number(e.target.value))}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
               >
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
+                {categories.length === 0 ? (
+                  <option value={1}>{language === 'bn' ? 'সাধারণ (General)' : 'General'}</option>
+                ) : (
+                  categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))
+                )}
               </select>
             )}
           </div>
 
           {/* Unit & Jora / Pair Pricing Mode */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-400 mb-1.5">
                 Default Unit
@@ -173,7 +179,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500 min-h-[38px]"
               >
                 <option value="piece">{language === 'bn' ? 'পিস (Piece / জোড়া অপশন)' : 'Piece (Single / Pair option)'}</option>
                 <option value="bag">{language === 'bn' ? 'বস্তা (Bag)' : 'Bag'}</option>
@@ -188,7 +194,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               <label className="block text-xs font-semibold uppercase text-slate-400 mb-1.5">
                 Pricing Mode
               </label>
-              <div className="flex bg-slate-800 p-1 rounded-xl border border-slate-700">
+              <div className="flex bg-slate-800 p-1 rounded-xl border border-slate-700 min-h-[38px]">
                 <button
                   type="button"
                   onClick={() => setPriceMode('single')}
@@ -216,7 +222,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           </div>
 
           {/* Prices & Stock */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-400 mb-1.5">
                 Cost Price (1 Pc)
@@ -227,7 +233,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 min="0"
                 value={costPrice}
                 onChange={(e) => setCostPrice(Number(e.target.value))}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500 min-h-[38px]"
               />
             </div>
 
@@ -241,7 +247,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 min="0"
                 value={sellingPrice}
                 onChange={(e) => handleSinglePriceChange(Number(e.target.value))}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500 min-h-[38px]"
               />
             </div>
 
@@ -255,7 +261,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 min="0"
                 value={joraPrice}
                 onChange={(e) => handleJoraPriceChange(Number(e.target.value))}
-                className="w-full bg-slate-800 border border-indigo-500/50 rounded-xl px-3 py-2 text-indigo-300 font-bold text-xs focus:outline-none focus:border-indigo-400"
+                className="w-full bg-slate-800 border border-indigo-500/50 rounded-xl px-3 py-2 text-indigo-300 font-bold text-xs focus:outline-none focus:border-indigo-400 min-h-[38px]"
               />
             </div>
           </div>
@@ -279,7 +285,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 value={initialStock}
                 onChange={(e) => setInitialStock(Number(e.target.value))}
                 placeholder="Total pieces in stock"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-blue-500 min-h-[38px]"
               />
               <div className="whitespace-nowrap px-3 py-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 rounded-xl text-xs font-bold">
                 = {joraStock} {language === 'bn' ? 'জোড়া' : 'Pair'}
@@ -287,19 +293,19 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
             </div>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-3">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800 transition-colors min-h-[44px] flex items-center justify-center"
             >
-              Cancel
+              {t('btn.cancel')}
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white flex items-center shadow-lg shadow-blue-900/40"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-900/40 active:scale-95 transition-all min-h-[44px]"
             >
-              <Check className="w-4 h-4 mr-1.5" /> Save Product
+              <Check className="w-4 h-4 mr-1.5" /> {language === 'bn' ? 'পণ্য সংরক্ষণ করুন' : 'Save Product'}
             </button>
           </div>
         </form>

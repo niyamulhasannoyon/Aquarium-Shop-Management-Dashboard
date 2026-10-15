@@ -175,10 +175,10 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
           </div>
 
           {/* Timeframe Buttons */}
-          <div className="flex flex-wrap items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 w-full lg:w-auto">
             <button
               onClick={() => setSelectedTimeframe('today')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all text-center ${
                 selectedTimeframe === 'today'
                   ? 'bg-emerald-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800'
@@ -188,7 +188,7 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
             </button>
             <button
               onClick={() => setSelectedTimeframe('this_month')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all text-center ${
                 selectedTimeframe === 'this_month'
                   ? 'bg-emerald-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800'
@@ -198,7 +198,7 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
             </button>
             <button
               onClick={() => setSelectedTimeframe('overall')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all text-center ${
                 selectedTimeframe === 'overall'
                   ? 'bg-emerald-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800'
@@ -208,7 +208,7 @@ export const DailyActivityLedger: React.FC<DailyActivityLedgerProps> = ({
             </button>
             <button
               onClick={() => setSelectedTimeframe('custom')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all text-center ${
                 selectedTimeframe === 'custom'
                   ? 'bg-purple-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800'

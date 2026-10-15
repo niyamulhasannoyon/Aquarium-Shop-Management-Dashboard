@@ -122,7 +122,7 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
 
         <button
           onClick={() => onOpenCollectDue()}
-          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-emerald-600 hover:from-amber-500 hover:to-emerald-500 text-white font-bold text-xs shadow-lg shadow-amber-900/30 flex items-center justify-center transition-all"
+          className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-emerald-600 hover:from-amber-500 hover:to-emerald-500 text-white font-bold text-xs shadow-lg shadow-amber-900/30 flex items-center justify-center transition-all min-h-[44px]"
         >
           <CreditCard className="w-4 h-4 mr-2" />
           {t('khata.recordDueBtn')}

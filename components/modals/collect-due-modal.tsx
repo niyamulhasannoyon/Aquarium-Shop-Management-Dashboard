@@ -55,14 +55,14 @@ export const CollectDueModal: React.FC<CollectDueModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-2.5 sm:p-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90dvh] sm:max-h-[88vh]">
+        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-800 bg-slate-900/50 shrink-0">
           <div className="flex items-center space-x-2">
             <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
               <CreditCard className="w-5 h-5" />
             </div>
-            <h3 className="text-lg font-bold text-white">
+            <h3 className="text-base sm:text-lg font-bold text-white">
               {language === 'bn' ? 'কাস্টমারের বকেয়া টাকা আদায়' : 'Collect Customer Outstanding Due'}
             </h3>
           </div>
@@ -74,7 +74,7 @@ export const CollectDueModal: React.FC<CollectDueModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
           <div>
             <label className="block text-xs font-semibold uppercase text-slate-400 mb-2">
               {language === 'bn' ? 'কাস্টমার নির্বাচন করুন' : 'Select Customer'}
@@ -82,13 +82,20 @@ export const CollectDueModal: React.FC<CollectDueModalProps> = ({
             <select
               value={selectedCustomerId}
               onChange={(e) => handleCustomerChange(Number(e.target.value))}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500 text-sm"
+              disabled={customers.length === 0}
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500 text-sm disabled:opacity-50"
             >
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} - {language === 'bn' ? 'বকেয়া' : 'Outstanding Due'}: {formatCurrency(c.total_due)}
+              {customers.length === 0 ? (
+                <option value="">
+                  {language === 'bn' ? 'কোনো কাস্টমার পাওয়া যায়নি' : 'No customers found'}
                 </option>
-              ))}
+              ) : (
+                customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} - {language === 'bn' ? 'বকেয়া' : 'Outstanding Due'}: {formatCurrency(c.total_due)}
+                  </option>
+                ))
+              )}
             </select>
           </div>
 
@@ -103,7 +110,7 @@ export const CollectDueModal: React.FC<CollectDueModalProps> = ({
               step="0.01"
               value={amount}
               onChange={(e) => setAmount(Number(e.target.value))}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-amber-400 font-bold text-lg font-mono focus:outline-none focus:border-amber-500"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-amber-400 font-bold text-lg font-mono focus:outline-none focus:border-amber-500 min-h-[44px]"
             />
           </div>
 
@@ -116,7 +123,7 @@ export const CollectDueModal: React.FC<CollectDueModalProps> = ({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="e.g. Received via bKash / Cash / Bank"
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-amber-500 min-h-[44px]"
             />
           </div>
 
@@ -131,19 +138,27 @@ export const CollectDueModal: React.FC<CollectDueModalProps> = ({
             </div>
           )}
 
-          <div className="flex justify-end space-x-3 pt-3">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800 transition-colors min-h-[44px] flex items-center justify-center"
             >
               {t('btn.cancel')}
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white flex items-center shadow-lg shadow-amber-900/40 active:scale-95 transition-all"
+              disabled={!selectedCustomer || amount <= 0 || customers.length === 0}
+              className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center shadow-lg transition-all min-h-[44px] ${
+                !selectedCustomer || amount <= 0 || customers.length === 0
+                  ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                  : 'bg-amber-600 hover:bg-amber-500 shadow-amber-900/40 active:scale-95'
+              }`}
             >
-              <Check className="w-4 h-4 mr-1.5" /> {language === 'bn' ? 'টাকা জমা রসিদ সংরক্ষণ করুন' : 'Record Collection Payment'}
+              <Check className="w-4 h-4 mr-1.5" />
+              {customers.length === 0
+                ? (language === 'bn' ? 'কোনো কাস্টমার নেই' : 'No Customer Available')
+                : (language === 'bn' ? 'টাকা জমা রসিদ সংরক্ষণ করুন' : 'Record Collection Payment')}
             </button>
           </div>
         </form>
@@ -151,3 +166,4 @@ export const CollectDueModal: React.FC<CollectDueModalProps> = ({
     </div>
   );
 };
+

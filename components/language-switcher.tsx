@@ -39,28 +39,30 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
       <button
         type="button"
         onClick={() => setLanguage('en')}
-        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+        className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
           language === 'en'
             ? 'bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-950/40 ring-1 ring-emerald-400/30'
             : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
         }`}
       >
         <span className="text-sm leading-none">🇬🇧</span>
-        <span>English</span>
+        <span className="hidden sm:inline">English</span>
+        <span className="sm:hidden font-semibold">EN</span>
         {language === 'en' && <Check className="w-3 h-3 ml-0.5 text-emerald-100" />}
       </button>
 
       <button
         type="button"
         onClick={() => setLanguage('bn')}
-        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+        className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
           language === 'bn'
             ? 'bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-950/40 ring-1 ring-emerald-400/30'
             : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
         }`}
       >
         <span className="text-sm leading-none">🇧🇩</span>
-        <span>বাংলা</span>
+        <span className="hidden sm:inline">বাংলা</span>
+        <span className="sm:hidden font-semibold">বাং</span>
         {language === 'bn' && <Check className="w-3 h-3 ml-0.5 text-emerald-100" />}
       </button>
     </div>

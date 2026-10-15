@@ -847,14 +847,15 @@ export const ExecutiveDashboard: React.FC = () => {
           </div>
 
           {/* Quick Header Actions */}
-          <div className="flex items-center flex-wrap gap-2 sm:gap-2.5">
+          {/* Quick Header Actions */}
+          <div className="flex items-center flex-wrap gap-1.5 sm:gap-2.5">
             <ThemeSwitcher />
             <LanguageSwitcher />
 
             <button
               onClick={lockSiteSystem}
               title={t('passcode.lockSystem')}
-              className="px-2.5 sm:px-3 py-2 bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/30 rounded-xl text-xs font-semibold text-rose-300 hover:text-white flex items-center transition-all shadow-md active:scale-95"
+              className="p-2 sm:px-3 sm:py-2 bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/30 rounded-xl text-xs font-semibold text-rose-300 hover:text-white flex items-center transition-all shadow-md active:scale-95 min-h-[36px]"
             >
               <Lock className="w-3.5 h-3.5 sm:mr-1.5" />
               <span className="hidden sm:inline">{t('passcode.lockSystem')}</span>
@@ -862,85 +863,88 @@ export const ExecutiveDashboard: React.FC = () => {
 
             <button
               onClick={handleOpenAddCustomer}
-              className="px-3 sm:px-3.5 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-xl text-xs font-semibold text-purple-300 hover:text-white flex items-center transition-all shadow-md active:scale-95"
+              title={t('quickActions.addCustomer')}
+              className="p-2 sm:px-3.5 sm:py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-xl text-xs font-semibold text-purple-300 hover:text-white flex items-center transition-all shadow-md active:scale-95 min-h-[36px]"
             >
-              <UserPlus className="w-3.5 h-3.5 mr-1.5 shrink-0" />
-              <span>+ {t('quickActions.addCustomer')}</span>
+              <UserPlus className="w-3.5 h-3.5 sm:mr-1.5 shrink-0" />
+              <span className="hidden sm:inline">+ {t('quickActions.addCustomer')}</span>
             </button>
 
             <button
               onClick={() => handleOpenCustomerProfiles()}
-              className="px-3 sm:px-3.5 py-2 bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 rounded-xl text-xs font-semibold text-cyan-300 hover:text-white flex items-center transition-all shadow-md active:scale-95"
+              title={t('modal.customerProfile.title')}
+              className="px-2.5 sm:px-3.5 py-2 bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 rounded-xl text-xs font-semibold text-cyan-300 hover:text-white flex items-center transition-all shadow-md active:scale-95 min-h-[36px]"
             >
-              <Users className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+              <Users className="w-3.5 h-3.5 mr-1 sm:mr-1.5 shrink-0" />
               <span className="hidden md:inline">{t('modal.customerProfile.title')}</span>
-              <span className="md:hidden">{t('nav.customers') || 'Khata'}</span>
-              <span className="ml-1 font-mono">({formatNumber(customers.length)})</span>
+              <span className="hidden sm:inline md:hidden">{t('nav.customers') || 'Khata'}</span>
+              <span className="font-mono text-[11px] sm:text-xs">({formatNumber(customers.length)})</span>
             </button>
 
             <button
               onClick={() => setActiveTab('products')}
               title="View Product Catalog & Stock"
-              className={`px-3 py-2 border rounded-xl text-xs flex items-center transition-all cursor-pointer shadow-sm active:scale-95 ${
+              className={`px-2.5 sm:px-3 py-2 border rounded-xl text-xs flex items-center transition-all cursor-pointer shadow-sm active:scale-95 min-h-[36px] ${
                 activeTab === 'products'
                   ? 'bg-teal-600/30 border-teal-500/50 text-white font-bold'
                   : 'bg-slate-800/80 hover:bg-slate-700/80 border-slate-700/80 text-slate-300 hover:text-white'
               }`}
             >
-              <Layers className="w-3.5 h-3.5 mr-1.5 text-teal-400 shrink-0" />
-              <span>{t('products.itemsCount') || 'Items'}: <strong className="text-white ml-0.5">{formatNumber(products.length)}</strong></span>
+              <Layers className="w-3.5 h-3.5 mr-1 sm:mr-1.5 text-teal-400 shrink-0" />
+              <span className="hidden sm:inline">{t('products.itemsCount') || 'Items'}: </span>
+              <strong className="text-white font-mono text-[11px] sm:text-xs">{formatNumber(products.length)}</strong>
             </button>
           </div>
         </div>
 
         {/* Navigation Bar Tabs */}
-        <div className="flex items-center space-x-2 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800 overflow-x-auto scrollbar-none touch-pan-x">
+        <div className="flex items-center space-x-1.5 sm:space-x-2 bg-slate-900/90 p-1 sm:p-1.5 rounded-2xl border border-slate-800 overflow-x-auto scrollbar-none touch-pan-x">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`flex-1 min-w-[130px] px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-2 ${
+            className={`flex-1 min-w-[105px] sm:min-w-0 py-2 sm:py-2.5 px-2.5 sm:px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-1.5 sm:space-x-2 shrink-0 sm:shrink min-h-[42px] ${
               activeTab === 'overview'
                 ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-950'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
-            <BarChart3 className="w-4 h-4" />
-            <span>{t('nav.overview')}</span>
+            <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="truncate">{t('nav.overview')}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('products')}
-            className={`flex-1 min-w-[140px] px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-2 ${
+            className={`flex-1 min-w-[110px] sm:min-w-0 py-2 sm:py-2.5 px-2.5 sm:px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-1.5 sm:space-x-2 shrink-0 sm:shrink min-h-[42px] ${
               activeTab === 'products'
                 ? 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-lg shadow-teal-950'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
-            <Layers className="w-4 h-4" />
-            <span>{t('nav.products')}</span>
+            <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="truncate">{t('nav.products')}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('daily_ledger')}
-            className={`flex-1 min-w-[150px] px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-2 ${
+            className={`flex-1 min-w-[115px] sm:min-w-0 py-2 sm:py-2.5 px-2.5 sm:px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-1.5 sm:space-x-2 shrink-0 sm:shrink min-h-[42px] ${
               activeTab === 'daily_ledger'
                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-indigo-950'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
-            <Calendar className="w-4 h-4" />
-            <span>{t('nav.dailyLedger')}</span>
+            <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="truncate">{t('nav.dailyLedger')}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('due_khata')}
-            className={`flex-1 min-w-[140px] px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-2 ${
+            className={`flex-1 min-w-[110px] sm:min-w-0 py-2 sm:py-2.5 px-2.5 sm:px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-1.5 sm:space-x-2 shrink-0 sm:shrink min-h-[42px] ${
               activeTab === 'due_khata'
                 ? 'bg-gradient-to-r from-rose-600 to-amber-600 text-white shadow-lg shadow-rose-950'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
-            <BookOpen className="w-4 h-4" />
-            <span>{t('nav.dueKhata')}</span>
+            <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="truncate">{t('nav.dueKhata')}</span>
           </button>
         </div>
 
@@ -948,15 +952,15 @@ export const ExecutiveDashboard: React.FC = () => {
         {activeTab === 'overview' && (
           <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200">
             {/* Timeframe selector header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-3.5 rounded-2xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 bg-slate-900 border border-slate-800 p-3 sm:p-3.5 rounded-2xl">
               <div className="flex items-center space-x-2 text-xs font-semibold text-slate-300">
-                <Clock className="w-4 h-4 text-emerald-400" />
+                <Clock className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>{t('timeframe.label')}</span>
               </div>
-              <div className="flex items-center space-x-1.5">
+              <div className="grid grid-cols-3 sm:flex sm:items-center gap-1.5 w-full sm:w-auto">
                 <button
                   onClick={() => setOverviewTimeframe('today')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  className={`py-1.5 px-2 sm:px-3 rounded-xl text-xs font-bold transition-all text-center min-h-[36px] flex items-center justify-center ${
                     overviewTimeframe === 'today'
                       ? 'bg-emerald-600 text-white shadow-md'
                       : 'bg-slate-800 text-slate-400 hover:text-white'
@@ -966,7 +970,7 @@ export const ExecutiveDashboard: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setOverviewTimeframe('this_month')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  className={`py-1.5 px-2 sm:px-3 rounded-xl text-xs font-bold transition-all text-center min-h-[36px] flex items-center justify-center ${
                     overviewTimeframe === 'this_month'
                       ? 'bg-emerald-600 text-white shadow-md'
                       : 'bg-slate-800 text-slate-400 hover:text-white'
@@ -976,7 +980,7 @@ export const ExecutiveDashboard: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setOverviewTimeframe('overall')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  className={`py-1.5 px-2 sm:px-3 rounded-xl text-xs font-bold transition-all text-center min-h-[36px] flex items-center justify-center ${
                     overviewTimeframe === 'overall'
                       ? 'bg-emerald-600 text-white shadow-md'
                       : 'bg-slate-800 text-slate-400 hover:text-white'
