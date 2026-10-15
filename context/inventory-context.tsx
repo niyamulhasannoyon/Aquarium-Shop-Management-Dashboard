@@ -72,7 +72,14 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
 
       if (savedProducts) {
-        setProducts(JSON.parse(savedProducts));
+        const parsed = JSON.parse(savedProducts);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter((p: any) => p && !p.name?.includes('Guppy') && !p.name?.includes('Betta') && !p.name?.includes('Hikari') && !p.name?.includes('Tokyo Micro') && !p.name?.includes('Anti-Chlorine') && !p.name?.includes('General Tonic') && !p.name?.includes('Soboo'));
+          setProducts(cleaned);
+          if (cleaned.length !== parsed.length) {
+            localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(cleaned));
+          }
+        }
       } else {
         setProducts(INITIAL_PRODUCTS);
         localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(INITIAL_PRODUCTS));

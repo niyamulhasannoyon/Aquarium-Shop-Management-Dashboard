@@ -32,6 +32,7 @@ import {
   initialSales,
   initialSaleItems,
   initialDueCollections,
+  DEMO_PRODUCT_NAMES,
 } from '@/lib/mock-data';
 import {
   calculateMetricsForTimeframe,
@@ -116,7 +117,13 @@ export const ExecutiveDashboard: React.FC = () => {
         const localProds = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
         if (localProds) {
           const parsed = JSON.parse(localProds);
-          if (Array.isArray(parsed) && parsed.length > 0) setProducts(parsed);
+          if (Array.isArray(parsed)) {
+            const cleaned = parsed.filter((p: Product) => p && !DEMO_PRODUCT_NAMES.has(p.name));
+            setProducts(cleaned);
+            if (cleaned.length !== parsed.length) {
+              saveStorage(STORAGE_KEYS.PRODUCTS, cleaned);
+            }
+          }
         }
 
         const localPurchs = localStorage.getItem(STORAGE_KEYS.PURCHASES);
@@ -165,9 +172,10 @@ export const ExecutiveDashboard: React.FC = () => {
           fetch('/api/due-collections').then((r) => r.json()).catch(() => null),
         ]);
 
-        if (prodRes?.success && Array.isArray(prodRes.products) && prodRes.products.length > 0) {
-          setProducts(prodRes.products);
-          saveStorage(STORAGE_KEYS.PRODUCTS, prodRes.products);
+        if (prodRes?.success && Array.isArray(prodRes.products)) {
+          const cleaned = prodRes.products.filter((p: Product) => p && !DEMO_PRODUCT_NAMES.has(p.name));
+          setProducts(cleaned);
+          saveStorage(STORAGE_KEYS.PRODUCTS, cleaned);
         }
 
         if (catRes?.success && Array.isArray(catRes.categories) && catRes.categories.length > 0) {

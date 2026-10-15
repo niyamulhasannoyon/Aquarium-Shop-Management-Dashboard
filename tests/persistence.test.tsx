@@ -90,8 +90,15 @@ describe('Data Persistence & Integrity Tests', () => {
   it('persists restocked inventory quantity across reloads', async () => {
     const { unmount } = renderDashboard();
 
+    // Add a product first so it can be restocked
+    fireEvent.click(screen.getByText('Product Catalog & Stock'));
+    fireEvent.click(screen.getByText(/\+ Add Product|\+ নতুন প্রোডাক্ট/i));
+    const nameInput = screen.getByPlaceholderText(/Gold fish/i);
+    fireEvent.change(nameInput, { target: { value: 'Guppy Blue' } });
+    fireEvent.click(screen.getByText(/Save Product/i));
+
     // Click Add Stock
-    fireEvent.click(screen.getByText('Add Stock'));
+    fireEvent.click(screen.getAllByText('Add Stock')[0]);
 
     // Change quantity to 25
     const qtyInput = screen.getAllByRole('spinbutton')[0];

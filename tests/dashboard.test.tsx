@@ -106,25 +106,30 @@ describe('ExecutiveOverviewDashboard Component', () => {
     expect(screen.getByText(/Existing Customer/i)).toBeInTheDocument();
   });
 
-  it('navigates to Products tab and displays all products with initial stock 0', () => {
+  it('navigates to Products tab and displays clean catalog with no demo products', () => {
     renderDashboard();
     const productsTabBtn = screen.getByText('Product Catalog & Stock');
     fireEvent.click(productsTabBtn);
 
-    // Products header and products should appear
+    // Products header should appear
     expect(screen.getByText('Product Inventory & Catalog')).toBeInTheDocument();
-    expect(screen.getAllByText('Dumbo Ear Red Tail Dragon Guppy (Pair / জোড়া)')[0]).toBeInTheDocument();
-    expect(screen.getAllByText('Full Red Albino Guppy (Pair / জোড়া)')[0]).toBeInTheDocument();
-
-    // Verify all products initial stock is 0 (Out of stock status displayed)
-    const outOfStockBadges = screen.getAllByText(/0 Pair|0 Piece|Out of Stock \(0\)|0 Pcs/i);
-    expect(outOfStockBadges.length).toBeGreaterThan(0);
+    // Verify demo products are not present
+    expect(screen.queryByText('Dumbo Ear Red Tail Dragon Guppy (Pair / জোড়া)')).not.toBeInTheDocument();
+    expect(screen.queryByText('Full Red Albino Guppy (Pair / জোড়া)')).not.toBeInTheDocument();
+    // Clean empty state should be displayed
+    expect(screen.getAllByText(/No products match/i).length).toBeGreaterThan(0);
   });
 
   it('opens Edit Product modal and updates product information successfully', () => {
     renderDashboard();
     const productsTabBtn = screen.getByText('Product Catalog & Stock');
     fireEvent.click(productsTabBtn);
+
+    // Add a product first
+    fireEvent.click(screen.getByText(/\+ Add Product|\+ নতুন প্রোডাক্ট/i));
+    const nameInput = screen.getByPlaceholderText(/Gold fish/i);
+    fireEvent.change(nameInput, { target: { value: 'Test Dragon Guppy' } });
+    fireEvent.click(screen.getByText(/Save Product/i));
 
     // Click first edit button
     const editBtns = screen.getAllByTitle('Edit');
