@@ -13,7 +13,7 @@
     "@radix-ui/react-select": "^2.1.2",
     "@radix-ui/react-slot": "^1.1.0",
     "@supabase/ssr": "^0.12.7",
-    "@supabase/supabase-js": "^2.117.1",
+    "@supabase/supabase-js": "^2.117.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.395.0",
