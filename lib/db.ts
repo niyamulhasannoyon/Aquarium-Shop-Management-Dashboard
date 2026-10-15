@@ -5,10 +5,15 @@ const connectionString = process.env.DATABASE_URL || 'postgres://niyamulhasan@lo
 // Use a global pool instance in development to avoid exhausting PostgreSQL connections during hot reloading
 const globalForPg = globalThis as unknown as { pgPool?: Pool };
 
+const isRemote =
+  !connectionString.includes('localhost') &&
+  !connectionString.includes('127.0.0.1');
+
 const pool =
   globalForPg.pgPool ??
   new Pool({
     connectionString,
+    ssl: isRemote ? { rejectUnauthorized: false } : undefined,
     max: 10,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
