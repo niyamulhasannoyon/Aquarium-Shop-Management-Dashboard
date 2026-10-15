@@ -52,6 +52,7 @@ import { AddProductModal } from '@/components/modals/add-product-modal';
 import { EditProductModal } from '@/components/modals/edit-product-modal';
 import { CollectDueModal } from '@/components/modals/collect-due-modal';
 import { AddCategoryModal } from '@/components/modals/add-category-modal';
+import { ManageCategoriesModal } from '@/components/modals/manage-categories-modal';
 import { AddCustomerModal } from '@/components/modals/add-customer-modal';
 import { CustomerProfileModal } from '@/components/modals/customer-profile-modal';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -59,11 +60,15 @@ import { ThemeSwitcher } from '@/components/theme-switcher';
 import { useLanguage } from '@/context/language-context';
 
 export const ExecutiveDashboard: React.FC = () => {
-  const { t, formatNumber } = useLanguage();
+  const { t, language, formatNumber } = useLanguage();
 
   // Navigation Tab State
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'daily_ledger' | 'due_khata'>('overview');
   const [overviewTimeframe, setOverviewTimeframe] = useState<TimeframePeriod>('overall');
+
+  // Cloud Sync state
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'offline'>('syncing');
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
 
   // LocalStorage storage keys for bulletproof offline & refresh resilience
   const STORAGE_KEYS = {
@@ -96,123 +101,187 @@ export const ExecutiveDashboard: React.FC = () => {
 
   // Modal State Triggers
   const [activeModal, setActiveModal] = useState<
-    'none' | 'new_sale' | 'add_stock' | 'add_product' | 'collect_due' | 'add_category' | 'add_customer' | 'customer_profile'
+    'none' | 'new_sale' | 'add_stock' | 'add_product' | 'collect_due' | 'add_category' | 'add_customer' | 'customer_profile' | 'manage_categories'
   >('none');
   const [restockProductId, setRestockProductId] = useState<number | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isEditProductOpen, setIsEditProductOpen] = useState(false);
 
-  // Hydrate from localStorage first and sync from PostgreSQL database
+  const applySyncedState = (data: any) => {
+    if (!data || !data.success) return;
+
+    if (Array.isArray(data.categories)) {
+      setCategories(data.categories);
+      saveStorage(STORAGE_KEYS.CATEGORIES, data.categories);
+    }
+    if (Array.isArray(data.products)) {
+      const cleaned = data.products.filter((p: Product) => p && !DEMO_PRODUCT_NAMES.has(p.name));
+      setProducts(cleaned);
+      saveStorage(STORAGE_KEYS.PRODUCTS, cleaned);
+    }
+    if (Array.isArray(data.customers)) {
+      setCustomers(data.customers);
+      saveStorage(STORAGE_KEYS.CUSTOMERS, data.customers);
+    }
+    if (Array.isArray(data.sales)) {
+      setSales(data.sales);
+      saveStorage(STORAGE_KEYS.SALES, data.sales);
+    }
+    if (Array.isArray(data.sale_items)) {
+      setSaleItems(data.sale_items);
+      saveStorage(STORAGE_KEYS.SALE_ITEMS, data.sale_items);
+    }
+    if (Array.isArray(data.purchases)) {
+      setPurchases(data.purchases);
+      saveStorage(STORAGE_KEYS.PURCHASES, data.purchases);
+    }
+    if (Array.isArray(data.due_collections)) {
+      setDueCollections(data.due_collections);
+      saveStorage(STORAGE_KEYS.DUE_COLLECTIONS, data.due_collections);
+    }
+    setSyncStatus('synced');
+    setLastSyncTime(new Date().toLocaleTimeString());
+  };
+
+  // Hydrate from localStorage first and sync bidirectionally with PostgreSQL database
   useEffect(() => {
-    // 1. Initial hydrate from localStorage for instantaneous rendering without data loss
+    let localDataToSync: any = null;
     if (typeof window !== 'undefined') {
       try {
         const localCats = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-        if (localCats) {
-          const parsed = JSON.parse(localCats);
-          if (Array.isArray(parsed) && parsed.length > 0) setCategories(parsed);
-        }
+        let parsedCats = localCats ? JSON.parse(localCats) : null;
+        if (Array.isArray(parsedCats) && parsedCats.length > 0) setCategories(parsedCats);
 
         const localProds = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-        if (localProds) {
-          const parsed = JSON.parse(localProds);
-          if (Array.isArray(parsed)) {
-            const cleaned = parsed.filter((p: Product) => p && !DEMO_PRODUCT_NAMES.has(p.name));
-            setProducts(cleaned);
-            if (cleaned.length !== parsed.length) {
-              saveStorage(STORAGE_KEYS.PRODUCTS, cleaned);
-            }
-          }
+        let parsedProds = localProds ? JSON.parse(localProds) : null;
+        if (Array.isArray(parsedProds)) {
+          const cleaned = parsedProds.filter((p: Product) => p && !DEMO_PRODUCT_NAMES.has(p.name));
+          setProducts(cleaned);
+          parsedProds = cleaned;
         }
 
         const localPurchs = localStorage.getItem(STORAGE_KEYS.PURCHASES);
-        if (localPurchs) {
-          const parsed = JSON.parse(localPurchs);
-          if (Array.isArray(parsed)) setPurchases(parsed);
-        }
+        let parsedPurchs = localPurchs ? JSON.parse(localPurchs) : null;
+        if (Array.isArray(parsedPurchs)) setPurchases(parsedPurchs);
 
         const localCusts = localStorage.getItem(STORAGE_KEYS.CUSTOMERS);
-        if (localCusts) {
-          const parsed = JSON.parse(localCusts);
-          if (Array.isArray(parsed)) setCustomers(parsed);
-        }
+        let parsedCusts = localCusts ? JSON.parse(localCusts) : null;
+        if (Array.isArray(parsedCusts)) setCustomers(parsedCusts);
 
         const localSales = localStorage.getItem(STORAGE_KEYS.SALES);
-        if (localSales) {
-          const parsed = JSON.parse(localSales);
-          if (Array.isArray(parsed)) setSales(parsed);
-        }
+        let parsedSales = localSales ? JSON.parse(localSales) : null;
+        if (Array.isArray(parsedSales)) setSales(parsedSales);
 
         const localItems = localStorage.getItem(STORAGE_KEYS.SALE_ITEMS);
-        if (localItems) {
-          const parsed = JSON.parse(localItems);
-          if (Array.isArray(parsed)) setSaleItems(parsed);
-        }
+        let parsedItems = localItems ? JSON.parse(localItems) : null;
+        if (Array.isArray(parsedItems)) setSaleItems(parsedItems);
 
         const localDues = localStorage.getItem(STORAGE_KEYS.DUE_COLLECTIONS);
-        if (localDues) {
-          const parsed = JSON.parse(localDues);
-          if (Array.isArray(parsed)) setDueCollections(parsed);
+        let parsedDues = localDues ? JSON.parse(localDues) : null;
+        if (Array.isArray(parsedDues)) setDueCollections(parsedDues);
+
+        // If client has offline items, prepare snapshot to sync to PostgreSQL
+        if (
+          (parsedProds && parsedProds.length > 0) ||
+          (parsedSales && parsedSales.length > 0) ||
+          (parsedPurchs && parsedPurchs.length > 0)
+        ) {
+          localDataToSync = {
+            products: parsedProds || [],
+            customers: parsedCusts || [],
+            purchases: parsedPurchs || [],
+            sales: parsedSales || [],
+            sale_items: parsedItems || [],
+            due_collections: parsedDues || [],
+          };
         }
       } catch (e) {
         console.error('Failed reading localStorage cache:', e);
       }
     }
 
-    // 2. Fetch latest data from database API and sync
-    async function loadBackendData() {
+    // Initial sync
+    async function performInitialSync() {
+      setSyncStatus('syncing');
       try {
-        const [prodRes, catRes, custRes, salesRes, purchRes, dueRes] = await Promise.all([
-          fetch('/api/products').then((r) => r.json()).catch(() => null),
-          fetch('/api/categories').then((r) => r.json()).catch(() => null),
-          fetch('/api/customers?all=true').then((r) => r.json()).catch(() => null),
-          fetch('/api/sales').then((r) => r.json()).catch(() => null),
-          fetch('/api/purchases').then((r) => r.json()).catch(() => null),
-          fetch('/api/due-collections').then((r) => r.json()).catch(() => null),
-        ]);
-
-        if (prodRes?.success && Array.isArray(prodRes.products)) {
-          const cleaned = prodRes.products.filter((p: Product) => p && !DEMO_PRODUCT_NAMES.has(p.name));
-          setProducts(cleaned);
-          saveStorage(STORAGE_KEYS.PRODUCTS, cleaned);
+        let res;
+        if (localDataToSync) {
+          res = await fetch('/api/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(localDataToSync),
+          });
+        } else {
+          res = await fetch('/api/sync');
         }
-
-        if (catRes?.success && Array.isArray(catRes.categories) && catRes.categories.length > 0) {
-          setCategories(catRes.categories);
-          saveStorage(STORAGE_KEYS.CATEGORIES, catRes.categories);
+        const data = await res.json();
+        if (data?.success) {
+          applySyncedState(data);
+        } else {
+          setSyncStatus('offline');
         }
-
-        if (custRes?.success && Array.isArray(custRes.customers) && custRes.customers.length > 0) {
-          setCustomers(custRes.customers);
-          saveStorage(STORAGE_KEYS.CUSTOMERS, custRes.customers);
-        }
-
-        if (salesRes?.success && Array.isArray(salesRes.sales) && salesRes.sales.length > 0) {
-          setSales(salesRes.sales);
-          saveStorage(STORAGE_KEYS.SALES, salesRes.sales);
-          if (Array.isArray(salesRes.sale_items)) {
-            setSaleItems(salesRes.sale_items);
-            saveStorage(STORAGE_KEYS.SALE_ITEMS, salesRes.sale_items);
-          }
-        }
-
-        if (purchRes?.success && Array.isArray(purchRes.purchases) && purchRes.purchases.length > 0) {
-          setPurchases(purchRes.purchases);
-          saveStorage(STORAGE_KEYS.PURCHASES, purchRes.purchases);
-        }
-
-        if (dueRes?.success && Array.isArray(dueRes.collections) && dueRes.collections.length > 0) {
-          setDueCollections(dueRes.collections);
-          saveStorage(STORAGE_KEYS.DUE_COLLECTIONS, dueRes.collections);
-        }
-      } catch (err) {
-        // Fallback to local state
+      } catch {
+        setSyncStatus('offline');
       }
     }
 
-    loadBackendData();
+    performInitialSync();
+
+    // Background interval sync (every 10s)
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/sync');
+        const data = await res.json();
+        if (data?.success) {
+          applySyncedState(data);
+        }
+      } catch {
+        setSyncStatus('offline');
+      }
+    }, 10000);
+
+    // Re-sync on window focus / tab visibility change
+    const onFocus = async () => {
+      try {
+        setSyncStatus('syncing');
+        const res = await fetch('/api/sync');
+        const data = await res.json();
+        if (data?.success) {
+          applySyncedState(data);
+        }
+      } catch {
+        setSyncStatus('offline');
+      }
+    };
+
+    window.addEventListener('focus', onFocus);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') onFocus();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, []);
+
+  const handleManualSync = async () => {
+    setSyncStatus('syncing');
+    try {
+      const res = await fetch('/api/sync');
+      const data = await res.json();
+      if (data?.success) {
+        applySyncedState(data);
+      } else {
+        setSyncStatus('offline');
+      }
+    } catch {
+      setSyncStatus('offline');
+    }
+  };
 
   // Compute KPI Metrics live based on selected Overview Timeframe (Daily / Monthly / Overall)
   const kpiMetrics = useMemo(() => {
@@ -251,7 +320,8 @@ export const ExecutiveDashboard: React.FC = () => {
     if (customerId) setSelectedCustomerId(customerId);
     setActiveModal('collect_due');
   };
-  const handleOpenAddCategory = () => setActiveModal('add_category');
+  const handleOpenAddCategory = () => setActiveModal('manage_categories');
+  const handleOpenManageCategories = () => setActiveModal('manage_categories');
   const handleOpenAddCustomer = () => setActiveModal('add_customer');
   const handleOpenCustomerProfiles = (id?: number) => {
     if (id) setSelectedCustomerId(id);
@@ -269,26 +339,10 @@ export const ExecutiveDashboard: React.FC = () => {
     }
   };
 
-  // Category Addition Handler
+  // Category Handlers (Full CRUD & Fresh Reset)
   const handleAddCategory = async (categoryName: string) => {
     const trimmed = categoryName.trim();
     if (!trimmed) return;
-
-    const existing = categories.find((c) => c.name.toLowerCase() === trimmed.toLowerCase());
-    if (existing) return;
-
-    const tempId = categories.length > 0 ? Math.max(...categories.map((c) => c.id)) + 1 : 1;
-    const newCat: Category = {
-      id: tempId,
-      name: trimmed,
-      created_at: new Date().toISOString(),
-    };
-
-    setCategories((prev) => {
-      const next = [...prev, newCat];
-      saveStorage(STORAGE_KEYS.CATEGORIES, next);
-      return next;
-    });
 
     try {
       const res = await fetch('/api/categories', {
@@ -299,13 +353,89 @@ export const ExecutiveDashboard: React.FC = () => {
       const data = await res.json();
       if (data.success && data.category) {
         setCategories((prev) => {
-          const next = prev.map((c) => (c.id === tempId ? { ...c, id: data.category.id, name: data.category.name } : c));
+          const exists = prev.some((c) => c.id === data.category.id || c.name.toLowerCase() === trimmed.toLowerCase());
+          const next = exists
+            ? prev.map((c) => (c.id === data.category.id ? data.category : c))
+            : [...prev, data.category];
           saveStorage(STORAGE_KEYS.CATEGORIES, next);
           return next;
         });
       }
-    } catch (e) {
-      // LocalStorage backup already preserved
+    } catch {
+      const tempId = categories.length > 0 ? Math.max(...categories.map((c) => c.id)) + 1 : 1;
+      const newCat: Category = { id: tempId, name: trimmed, created_at: new Date().toISOString() };
+      setCategories((prev) => {
+        const next = [...prev, newCat];
+        saveStorage(STORAGE_KEYS.CATEGORIES, next);
+        return next;
+      });
+    }
+  };
+
+  const handleEditCategory = async (id: number, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+
+    try {
+      const res = await fetch('/api/categories', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, name: trimmed }),
+      });
+      const data = await res.json();
+      if (data.success && data.category) {
+        setCategories((prev) => {
+          const next = prev.map((c) => (c.id === id ? data.category : c));
+          saveStorage(STORAGE_KEYS.CATEGORIES, next);
+          return next;
+        });
+      }
+    } catch {
+      setCategories((prev) => {
+        const next = prev.map((c) => (c.id === id ? { ...c, name: trimmed } : c));
+        saveStorage(STORAGE_KEYS.CATEGORIES, next);
+        return next;
+      });
+    }
+  };
+
+  const handleDeleteCategory = async (id: number) => {
+    try {
+      await fetch(`/api/categories?id=${id}`, { method: 'DELETE' });
+      setCategories((prev) => {
+        const next = prev.filter((c) => c.id !== id);
+        saveStorage(STORAGE_KEYS.CATEGORIES, next);
+        return next;
+      });
+      setProducts((prev) => {
+        const next = prev.map((p) => (p.category_id === id ? { ...p, category_id: 0 } : p));
+        saveStorage(STORAGE_KEYS.PRODUCTS, next);
+        return next;
+      });
+    } catch {
+      setCategories((prev) => {
+        const next = prev.filter((c) => c.id !== id);
+        saveStorage(STORAGE_KEYS.CATEGORIES, next);
+        return next;
+      });
+    }
+  };
+
+  const handleResetCategories = async () => {
+    try {
+      const res = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset' }),
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.categories)) {
+        setCategories(data.categories);
+        saveStorage(STORAGE_KEYS.CATEGORIES, data.categories);
+      }
+    } catch {
+      setCategories(initialCategories);
+      saveStorage(STORAGE_KEYS.CATEGORIES, initialCategories);
     }
   };
 
@@ -847,8 +977,48 @@ export const ExecutiveDashboard: React.FC = () => {
           </div>
 
           {/* Quick Header Actions */}
-          {/* Quick Header Actions */}
           <div className="flex items-center flex-wrap gap-1.5 sm:gap-2.5">
+            {/* Live Cloud Sync Status Badge */}
+            <button
+              onClick={handleManualSync}
+              title={
+                syncStatus === 'synced'
+                  ? `Cloud Synced (${lastSyncTime || 'Active'}) - Click to re-sync`
+                  : syncStatus === 'syncing'
+                  ? 'Syncing data with database...'
+                  : 'Offline mode - Click to reconnect and sync'
+              }
+              className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-sm active:scale-95 border min-h-[36px] ${
+                syncStatus === 'synced'
+                  ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300 hover:bg-emerald-900/40'
+                  : syncStatus === 'syncing'
+                  ? 'bg-amber-950/40 border-amber-500/30 text-amber-300 hover:bg-amber-900/40'
+                  : 'bg-rose-950/40 border-rose-500/30 text-rose-300 hover:bg-rose-900/40'
+              }`}
+            >
+              <span className="relative flex h-2 w-2">
+                {syncStatus === 'synced' && (
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                )}
+                <span
+                  className={`relative inline-flex rounded-full h-2 w-2 ${
+                    syncStatus === 'synced'
+                      ? 'bg-emerald-500'
+                      : syncStatus === 'syncing'
+                      ? 'bg-amber-400 animate-spin'
+                      : 'bg-rose-500'
+                  }`}
+                ></span>
+              </span>
+              <span className="text-[11px] sm:text-xs">
+                {syncStatus === 'synced'
+                  ? (language === 'bn' ? 'অনলাইন সিঙ্ক' : 'Cloud Synced')
+                  : syncStatus === 'syncing'
+                  ? (language === 'bn' ? 'সিঙ্ক হচ্ছে...' : 'Syncing...')
+                  : (language === 'bn' ? 'অফলাইন' : 'Offline')}
+              </span>
+            </button>
+
             <ThemeSwitcher />
             <LanguageSwitcher />
 
@@ -859,6 +1029,16 @@ export const ExecutiveDashboard: React.FC = () => {
             >
               <Lock className="w-3.5 h-3.5 sm:mr-1.5" />
               <span className="hidden sm:inline">{t('passcode.lockSystem')}</span>
+            </button>
+
+            <button
+              onClick={handleOpenManageCategories}
+              title={language === 'bn' ? 'ক্যাটাগরি ম্যানেজমেন্ট' : 'Manage Categories'}
+              className="p-2 sm:px-3.5 sm:py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-xl text-xs font-semibold text-purple-300 hover:text-white flex items-center transition-all shadow-md active:scale-95 min-h-[36px]"
+            >
+              <Layers className="w-3.5 h-3.5 sm:mr-1.5 shrink-0" />
+              <span className="hidden sm:inline">{language === 'bn' ? 'ক্যাটাগরি' : 'Categories'}</span>
+              <span className="font-mono text-[11px] sm:text-xs ml-1">({formatNumber(categories.length)})</span>
             </button>
 
             <button
@@ -1005,6 +1185,7 @@ export const ExecutiveDashboard: React.FC = () => {
                 onOpenCollectDue={() => handleOpenCollectDue()}
                 onOpenAddCustomer={handleOpenAddCustomer}
                 onOpenCustomerProfiles={() => handleOpenCustomerProfiles()}
+                onOpenManageCategories={handleOpenManageCategories}
               />
             </section>
 
@@ -1032,6 +1213,7 @@ export const ExecutiveDashboard: React.FC = () => {
               onEditProduct={handleOpenEditProduct}
               onOpenAddStock={(prodId) => handleOpenAddStock(prodId)}
               onOpenAddProduct={handleOpenAddProduct}
+              onOpenManageCategories={handleOpenManageCategories}
               onDeleteProduct={handleDeleteProduct}
             />
           </div>
@@ -1120,6 +1302,17 @@ export const ExecutiveDashboard: React.FC = () => {
           isOpen={activeModal === 'add_category'}
           onClose={() => setActiveModal('none')}
           onSubmitCategory={handleAddCategory}
+        />
+
+        <ManageCategoriesModal
+          isOpen={activeModal === 'manage_categories'}
+          onClose={() => setActiveModal('none')}
+          categories={categories}
+          products={products}
+          onAddCategory={handleAddCategory}
+          onEditCategory={handleEditCategory}
+          onDeleteCategory={handleDeleteCategory}
+          onResetCategories={handleResetCategories}
         />
 
         <AddCustomerModal

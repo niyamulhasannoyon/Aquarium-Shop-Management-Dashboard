@@ -25,6 +25,7 @@ interface ProductInventoryLedgerProps {
   onEditProduct: (product: Product) => void;
   onOpenAddStock: (productId?: number) => void;
   onOpenAddProduct: () => void;
+  onOpenManageCategories?: () => void;
   onDeleteProduct?: (productId: number) => void;
 }
 
@@ -34,9 +35,10 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
   onEditProduct,
   onOpenAddStock,
   onOpenAddProduct,
+  onOpenManageCategories,
   onDeleteProduct,
 }) => {
-  const { t, formatCurrency, formatNumber } = useLanguage();
+  const { t, language, formatCurrency, formatNumber } = useLanguage();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | 'all'>('all');
@@ -140,6 +142,15 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
         </div>
 
         <div className="flex items-center flex-wrap gap-2.5 w-full sm:w-auto">
+          {onOpenManageCategories && (
+            <button
+              onClick={onOpenManageCategories}
+              className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 hover:text-white rounded-xl text-xs sm:text-sm font-semibold flex items-center space-x-1.5 transition-all shadow-md min-h-[44px]"
+            >
+              <Layers className="w-4 h-4" />
+              <span>{language === 'bn' ? 'ক্যাটাগরি ম্যানেজমেন্ট' : 'Manage Categories'}</span>
+            </button>
+          )}
           <button
             onClick={onOpenAddProduct}
             className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center space-x-1.5 shadow-md shadow-teal-950 transition-all min-h-[44px]"
@@ -333,6 +344,16 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
               </button>
             );
           })}
+          {onOpenManageCategories && (
+            <button
+              onClick={onOpenManageCategories}
+              className="px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all active:scale-95 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center space-x-1 shrink-0 ml-1"
+              title={language === 'bn' ? 'ক্যাটাগরি ম্যানেজমেন্ট' : 'Manage Categories'}
+            >
+              <PlusCircle className="w-3.5 h-3.5 text-purple-400" />
+              <span>{language === 'bn' ? 'ক্যাটাগরি' : 'Category'}</span>
+            </button>
+          )}
         </div>
       </div>
 

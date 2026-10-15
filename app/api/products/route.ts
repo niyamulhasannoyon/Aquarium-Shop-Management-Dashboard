@@ -58,9 +58,10 @@ export async function POST(request: NextRequest) {
     const stockNum = Number(initial_stock || 0);
     const unitStr = default_unit || 'Piece';
 
+    // Insert product (if stockNum > 0, start with 0 because purchases trigger will increment it)
     const result = await client.query(
       `INSERT INTO products (name, category_id, default_unit, cost_price, selling_price, current_stock, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+       VALUES ($1, $2, $3, $4, $5, 0, NOW())
        RETURNING id, name, category_id, default_unit, cost_price::float, selling_price::float, current_stock::float, created_at`,
       [
         name.trim(),
@@ -68,13 +69,13 @@ export async function POST(request: NextRequest) {
         unitStr,
         costNum,
         sellNum,
-        stockNum,
       ]
     );
 
     const product = result.rows[0];
 
     // If initial stock was provided, log a purchase record for audit trail
+    // Trigger trg_purchases_increment_stock will auto-increment product current_stock to stockNum
     if (stockNum > 0) {
       await client.query(
         `INSERT INTO purchases (product_id, unit_type, quantity, multiplier, unit_cost, total_investment, purchase_date)
@@ -89,9 +90,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const finalProdRes = await client.query(
+      `SELECT 
+         p.id, 
+         p.name, 
+         p.category_id, 
+         COALESCE(c.name, 'Uncategorized') AS category_name, 
+         p.default_unit, 
+         p.cost_price::float, 
+         p.selling_price::float, 
+         p.current_stock::float, 
+         p.created_at
+       FROM products p
+       LEFT JOIN categories c ON p.category_id = c.id
+       WHERE p.id = $1`,
+      [product.id]
+    );
+
     await client.query('COMMIT');
 
-    return NextResponse.json({ success: true, product });
+    const finalProduct = finalProdRes.rows[0] || { ...product, current_stock: stockNum };
+    return NextResponse.json({ success: true, product: finalProduct });
   } catch (error: any) {
     if (client) {
       await client.query('ROLLBACK').catch(() => {});
@@ -155,7 +174,17 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, product: result.rows[0] });
+    const catNameRes = await pool.query(
+      `SELECT COALESCE(name, 'Uncategorized') as category_name FROM categories WHERE id = $1`,
+      [result.rows[0].category_id]
+    );
+
+    const productWithCat = {
+      ...result.rows[0],
+      category_name: catNameRes.rows[0]?.category_name || 'Uncategorized',
+    };
+
+    return NextResponse.json({ success: true, product: productWithCat });
   } catch (error: any) {
     console.error('Error updating product:', error);
     return NextResponse.json(

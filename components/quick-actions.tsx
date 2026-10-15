@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ShoppingBag, PackagePlus, PlusCircle, CreditCard, Sparkles, UserPlus, Users } from 'lucide-react';
+import { ShoppingBag, PackagePlus, PlusCircle, CreditCard, Sparkles, UserPlus, Users, Layers } from 'lucide-react';
 import { useLanguage } from '@/context/language-context';
 
 interface QuickActionsProps {
@@ -11,6 +11,7 @@ interface QuickActionsProps {
   onOpenCollectDue: () => void;
   onOpenAddCustomer?: () => void;
   onOpenCustomerProfiles?: () => void;
+  onOpenManageCategories?: () => void;
 }
 
 export const QuickActions: React.FC<QuickActionsProps> = ({
@@ -20,8 +21,9 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
   onOpenCollectDue,
   onOpenAddCustomer,
   onOpenCustomerProfiles,
+  onOpenManageCategories,
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const actions = [
     {
@@ -89,6 +91,19 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
       iconStyle: 'bg-teal-500/20 text-teal-400 border border-teal-500/30 group-hover:bg-teal-500 group-hover:text-white',
       badgeStyle: 'bg-teal-500/15 text-teal-300 border border-teal-500/30',
       badge: 'Khata',
+    });
+  }
+
+  if (onOpenManageCategories) {
+    actions.push({
+      label: language === 'bn' ? 'ক্যাটাগরি' : 'Categories',
+      subtitle: language === 'bn' ? 'ম্যানেজ ও ফ্রেশ' : 'Manage & Fresh',
+      icon: Layers,
+      onClick: onOpenManageCategories,
+      cardStyle: 'bg-gradient-to-br from-fuchsia-500/10 via-purple-950/20 to-slate-900/90 border border-fuchsia-500/30 hover:border-fuchsia-400/60 shadow-lg shadow-fuchsia-950/20 text-fuchsia-100',
+      iconStyle: 'bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/30 group-hover:bg-fuchsia-500 group-hover:text-white',
+      badgeStyle: 'bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/30',
+      badge: 'Type',
     });
   }
 
