@@ -18,6 +18,7 @@ import {
   UserPlus,
   Users,
   ChevronLeft,
+  Trash2,
 } from 'lucide-react';
 import { Customer, Sale, SaleItem, DueCollection } from '@/types/executive';
 import { formatCurrency } from '@/lib/calculations';
@@ -35,6 +36,7 @@ interface CustomerProfileModalProps {
   onOpenCollectDueForCustomer?: (customerId: number) => void;
   onOpenNewSaleForCustomer?: (customerId: number) => void;
   onOpenAddCustomer?: () => void;
+  onDeleteCustomer?: (customer: Customer) => void;
 }
 
 export const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
@@ -49,6 +51,7 @@ export const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
   onOpenCollectDueForCustomer,
   onOpenNewSaleForCustomer,
   onOpenAddCustomer,
+  onDeleteCustomer,
 }) => {
   const { t, language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
@@ -371,7 +374,7 @@ export const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                   </div>
 
                   {/* Customer Direct Quick Action Triggers */}
-                  <div className="flex items-center space-x-2 w-full sm:w-auto">
+                  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                     {onOpenNewSaleForCustomer && (
                       <button
                         onClick={() => {
@@ -392,6 +395,16 @@ export const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                         className="flex-1 sm:flex-none px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-md shadow-amber-900/30 flex items-center justify-center transition-colors"
                       >
                         <CreditCard className="w-3.5 h-3.5 mr-1.5" /> Collect Due
+                      </button>
+                    )}
+                    {onDeleteCustomer && (
+                      <button
+                        onClick={() => onDeleteCustomer(currentCustomer)}
+                        title={language === 'bn' ? 'কাস্টমার ডিলিট করুন' : 'Delete Customer'}
+                        className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-semibold flex items-center justify-center transition-colors shrink-0"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                        <span>{language === 'bn' ? 'ডিলিট' : 'Delete'}</span>
                       </button>
                     )}
                   </div>

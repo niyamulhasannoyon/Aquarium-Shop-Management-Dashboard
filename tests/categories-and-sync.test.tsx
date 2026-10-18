@@ -56,7 +56,6 @@ describe('Categories Management & Multi-Device Sync', () => {
           onAddCategory={vi.fn()}
           onEditCategory={vi.fn()}
           onDeleteCategory={vi.fn()}
-          onResetCategories={vi.fn()}
         />
       </LanguageProvider>
     );
@@ -80,7 +79,6 @@ describe('Categories Management & Multi-Device Sync', () => {
           onAddCategory={onAddCategoryMock}
           onEditCategory={vi.fn()}
           onDeleteCategory={vi.fn()}
-          onResetCategories={vi.fn()}
         />
       </LanguageProvider>
     );
@@ -107,7 +105,6 @@ describe('Categories Management & Multi-Device Sync', () => {
           onAddCategory={vi.fn()}
           onEditCategory={onEditCategoryMock}
           onDeleteCategory={vi.fn()}
-          onResetCategories={vi.fn()}
         />
       </LanguageProvider>
     );
@@ -127,9 +124,7 @@ describe('Categories Management & Multi-Device Sync', () => {
     expect(onEditCategoryMock).toHaveBeenCalledWith(1, 'Fresh Fish Category');
   });
 
-  it('opens confirmation and resets to fresh aquarium categories', async () => {
-    const onResetMock = vi.fn().mockResolvedValue(undefined);
-
+  it('does not display Reset to Fresh Aquarium Categories option', () => {
     render(
       <LanguageProvider>
         <ManageCategoriesModal
@@ -140,18 +135,12 @@ describe('Categories Management & Multi-Device Sync', () => {
           onAddCategory={vi.fn()}
           onEditCategory={vi.fn()}
           onDeleteCategory={vi.fn()}
-          onResetCategories={onResetMock}
         />
       </LanguageProvider>
     );
 
-    const resetBtn = screen.getByText(/Reset to Fresh Aquarium Categories|ফ্রেশ ক্যাটাগরি সেট রিসেট করুন/i);
-    fireEvent.click(resetBtn);
-
-    // Confirmation button should appear
-    const confirmBtn = screen.getByText(/Yes, Reset|হ্যাঁ, রিসেট করুন/i);
-    fireEvent.click(confirmBtn);
-
-    expect(onResetMock).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByText(/Reset to Fresh Aquarium Categories|ফ্রেশ ক্যাটাগরি সেট রিসেট করুন/i)
+    ).not.toBeInTheDocument();
   });
 });

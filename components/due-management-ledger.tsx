@@ -17,6 +17,7 @@ import {
   TrendingDown,
   DollarSign,
   ArrowRight,
+  Trash2,
 } from 'lucide-react';
 import { Customer, Sale, DueCollection, SaleItem } from '@/types/executive';
 import { formatCurrency } from '@/lib/calculations';
@@ -31,6 +32,7 @@ interface DueManagementLedgerProps {
   onOpenCollectDue: (customerId?: number) => void;
   onOpenCustomerProfile: (customerId: number) => void;
   onOpenNewSaleForCustomer: (customerId: number) => void;
+  onDeleteCustomer?: (customer: Customer) => void;
 }
 
 export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
@@ -41,8 +43,9 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
   onOpenCollectDue,
   onOpenCustomerProfile,
   onOpenNewSaleForCustomer,
+  onDeleteCustomer,
 }) => {
-  const { t, formatCurrency, formatNumber, formatDate } = useLanguage();
+  const { language, t, formatCurrency, formatNumber, formatDate } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [dueFilter, setDueFilter] = useState<'all' | 'due_only' | 'cleared'>('due_only');
 
@@ -326,11 +329,21 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
                       )}
                       <button
                         onClick={() => onOpenCustomerProfile(cust.id)}
-                        className={`${hasDue ? 'flex-1' : 'w-full'} py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors flex items-center justify-center space-x-1 border border-slate-700/80 active:scale-98`}
+                        className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors flex items-center justify-center space-x-1 border border-slate-700/80 active:scale-98"
                       >
                         <FileText className="w-3.5 h-3.5 mr-1" />
                         <span>{t('khata.ledger')}</span>
                       </button>
+                      {onDeleteCustomer && (
+                        <button
+                          type="button"
+                          onClick={() => onDeleteCustomer(cust)}
+                          title={language === 'bn' ? 'কাস্টমার ডিলিট করুন' : 'Delete Customer'}
+                          className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/20 transition-colors shrink-0"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -424,7 +437,7 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
 
                         {/* Actions */}
                         <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end space-x-2">
+                          <div className="flex items-center justify-end space-x-1.5">
                             {hasDue && (
                               <button
                                 onClick={() => onOpenCollectDue(cust.id)}
@@ -440,6 +453,16 @@ export const DueManagementLedger: React.FC<DueManagementLedgerProps> = ({
                               <FileText className="w-3 h-3 mr-1" />
                               {t('khata.ledger')}
                             </button>
+                            {onDeleteCustomer && (
+                              <button
+                                type="button"
+                                onClick={() => onDeleteCustomer(cust)}
+                                title={language === 'bn' ? 'কাস্টমার ডিলিট করুন' : 'Delete Customer'}
+                                className="p-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/20 transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

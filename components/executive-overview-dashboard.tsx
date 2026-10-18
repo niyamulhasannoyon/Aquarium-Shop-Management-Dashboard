@@ -55,6 +55,7 @@ import { AddCategoryModal } from '@/components/modals/add-category-modal';
 import { ManageCategoriesModal } from '@/components/modals/manage-categories-modal';
 import { AddCustomerModal } from '@/components/modals/add-customer-modal';
 import { CustomerProfileModal } from '@/components/modals/customer-profile-modal';
+import { DeleteCustomerModal } from '@/components/modals/delete-customer-modal';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { ThemeSwitcher } from '@/components/theme-switcher';
 import { useLanguage } from '@/context/language-context';
@@ -472,24 +473,6 @@ export const ExecutiveDashboard: React.FC = () => {
     }
   };
 
-  const handleResetCategories = async () => {
-    try {
-      const res = await fetch('/api/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'reset' }),
-      });
-      const data = await res.json();
-      if (data.success && Array.isArray(data.categories)) {
-        setCategories(data.categories);
-        saveStorage(STORAGE_KEYS.CATEGORIES, data.categories);
-      }
-    } catch {
-      setCategories(initialCategories);
-      saveStorage(STORAGE_KEYS.CATEGORIES, initialCategories);
-    }
-  };
-
   // Customer Addition Handler
   const handleAddCustomer = async (customerData: {
     name: string;
@@ -562,22 +545,28 @@ export const ExecutiveDashboard: React.FC = () => {
     due_amount: number;
   }) => {
     let targetCustomerId = saleData.customer_id;
+    let optimisticCustId: number | null = null;
 
-    // Auto-create new customer if name was typed in sale modal
+    // Auto-create new customer optimistically if name was typed in sale modal
     if (saleData.new_customer && saleData.new_customer.name) {
+      const cleanName = saleData.new_customer.name.trim();
+      const cleanPhone = saleData.new_customer.phone?.trim() || '';
       const existing = customers.find(
-        (c) => c.name.toLowerCase() === saleData.new_customer!.name.trim().toLowerCase()
+        (c) =>
+          c.name.toLowerCase() === cleanName.toLowerCase() ||
+          (cleanPhone && c.phone && c.phone.trim() === cleanPhone)
       );
       if (existing) {
         targetCustomerId = existing.id;
       } else {
         const newCustId = customers.length > 0 ? Math.max(...customers.map((c) => c.id)) + 1 : 1;
+        optimisticCustId = newCustId;
         const newCustomer: Customer = {
           id: newCustId,
-          name: saleData.new_customer.name.trim(),
-          phone: saleData.new_customer.phone?.trim() || '',
+          name: cleanName,
+          phone: cleanPhone,
           address: '',
-          total_due: 0,
+          total_due: saleData.due_amount,
           created_at: new Date().toISOString(),
         };
 
@@ -587,29 +576,6 @@ export const ExecutiveDashboard: React.FC = () => {
           return next;
         });
         targetCustomerId = newCustId;
-
-        // Sync customer with backend API
-        fetch('/api/customers', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: newCustomer.name,
-            phone: newCustomer.phone,
-            address: '',
-            initial_due: 0,
-          }),
-        })
-          .then((r) => r.json())
-          .then((res) => {
-            if (res.success && res.customer) {
-              setCustomers((prev) => {
-                const next = prev.map((c) => (c.id === newCustId ? res.customer : c));
-                saveStorage(STORAGE_KEYS.CUSTOMERS, next);
-                return next;
-              });
-            }
-          })
-          .catch(() => {});
       }
     }
 
@@ -657,7 +623,7 @@ export const ExecutiveDashboard: React.FC = () => {
       return next;
     });
 
-    // 2. Trigger 2 Simulation: Deduct inventory stock
+    // 2. Deduct inventory stock
     setProducts((prevProducts) => {
       const next = prevProducts.map((p) => {
         const itemMatch = saleData.items.find((i) => i.product_id === p.id);
@@ -674,8 +640,8 @@ export const ExecutiveDashboard: React.FC = () => {
       return next;
     });
 
-    // 3. Trigger 3 Simulation: Increase customer total_due if due_amount > 0
-    if (saleData.due_amount > 0 && targetCustomerId !== null) {
+    // 3. Update customer total_due if due_amount > 0 and customer was existing
+    if (saleData.due_amount > 0 && targetCustomerId !== null && !optimisticCustId) {
       setCustomers((prevCustomers) => {
         const next = prevCustomers.map((c) =>
           c.id === targetCustomerId
@@ -687,15 +653,16 @@ export const ExecutiveDashboard: React.FC = () => {
       });
     }
 
-    // 4. Sync sale with backend API
+    // 4. Sync sale with backend API atomically
     try {
       const res = await fetch('/api/sales', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customerId: targetCustomerId,
+          customerId: optimisticCustId ? null : targetCustomerId,
           walkInName: saleData.new_customer?.name,
           walkInPhone: saleData.new_customer?.phone,
+          isWalkIn: !targetCustomerId && !saleData.new_customer,
           invoiceNo,
           totalAmount: saleData.total_amount,
           paidAmount: saleData.paid_amount,
@@ -716,12 +683,37 @@ export const ExecutiveDashboard: React.FC = () => {
 
       const data = await res.json();
       if (data.success && data.sale) {
+        const realCustomerId = data.sale.customer_id;
+
+        // Reconcile real customer if returned
+        if (data.customer) {
+          const serverCust: Customer = {
+            ...data.customer,
+            total_due: Number(data.customer.total_due) || 0,
+          };
+          setCustomers((prev) => {
+            let next: Customer[];
+            if (optimisticCustId) {
+              const withoutOptimistic = prev.filter((c) => c.id !== optimisticCustId);
+              const exists = withoutOptimistic.some((c) => c.id === serverCust.id);
+              next = exists
+                ? withoutOptimistic.map((c) => (c.id === serverCust.id ? serverCust : c))
+                : [serverCust, ...withoutOptimistic];
+            } else {
+              next = prev.map((c) => (c.id === serverCust.id ? serverCust : c));
+            }
+            saveStorage(STORAGE_KEYS.CUSTOMERS, next);
+            return next;
+          });
+        }
+
         setSales((prev) => {
           const next = prev.map((s) =>
             s.id === tempSaleId
               ? {
                   ...s,
                   id: data.sale.id,
+                  customer_id: realCustomerId,
                   invoice_no: data.sale.invoice_no || data.sale.invoiceNo || s.invoice_no,
                   sale_date: data.sale.sale_date || data.sale.saleDate || s.sale_date,
                 }
@@ -741,7 +733,52 @@ export const ExecutiveDashboard: React.FC = () => {
         }
       }
     } catch (e) {
-      // LocalStorage preserves the record
+      // LocalStorage preserves the optimistic record
+    }
+  };
+
+  // State & Handlers for Customer Deletion
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [isDeleteCustomerModalOpen, setIsDeleteCustomerModalOpen] = useState(false);
+
+  const handleOpenDeleteCustomer = (customer: Customer) => {
+    setCustomerToDelete(customer);
+    setIsDeleteCustomerModalOpen(true);
+  };
+
+  const handleDeleteCustomer = async (customerId: number) => {
+    // 1. Optimistic removal from customers state & localStorage
+    setCustomers((prev) => {
+      const next = prev.filter((c) => c.id !== customerId);
+      saveStorage(STORAGE_KEYS.CUSTOMERS, next);
+      return next;
+    });
+
+    // 2. Unlink sales for this customer (customer_id = null so sales revenue and stock history remain intact)
+    setSales((prev) => {
+      const next = prev.map((s) => (s.customer_id === customerId ? { ...s, customer_id: null } : s));
+      saveStorage(STORAGE_KEYS.SALES, next);
+      return next;
+    });
+
+    // 3. Remove due collection receipts for this customer
+    setDueCollections((prev) => {
+      const next = prev.filter((c) => c.customer_id !== customerId);
+      saveStorage(STORAGE_KEYS.DUE_COLLECTIONS, next);
+      return next;
+    });
+
+    if (selectedCustomerId === customerId) {
+      setSelectedCustomerId(null);
+    }
+
+    // 4. Server call to delete customer atomically
+    try {
+      await fetch(`/api/customers?id=${customerId}`, {
+        method: 'DELETE',
+      });
+    } catch (e) {
+      console.warn('Offline: customer deletion recorded locally', e);
     }
   };
 
@@ -1310,6 +1347,7 @@ export const ExecutiveDashboard: React.FC = () => {
                 setSelectedCustomerId(custGoalId);
                 setActiveModal('new_sale');
               }}
+              onDeleteCustomer={handleOpenDeleteCustomer}
             />
           </div>
         )}
@@ -1372,7 +1410,6 @@ export const ExecutiveDashboard: React.FC = () => {
           onAddCategory={handleAddCategory}
           onEditCategory={handleEditCategory}
           onDeleteCategory={handleDeleteCategory}
-          onResetCategories={handleResetCategories}
         />
 
         <AddCustomerModal
@@ -1399,6 +1436,19 @@ export const ExecutiveDashboard: React.FC = () => {
             setActiveModal('new_sale');
           }}
           onOpenAddCustomer={handleOpenAddCustomer}
+          onDeleteCustomer={handleOpenDeleteCustomer}
+        />
+
+        <DeleteCustomerModal
+          isOpen={isDeleteCustomerModalOpen}
+          onClose={() => {
+            setIsDeleteCustomerModalOpen(false);
+            setCustomerToDelete(null);
+          }}
+          customer={customerToDelete}
+          sales={sales}
+          dueCollections={dueCollections}
+          onConfirmDelete={handleDeleteCustomer}
         />
       </div>
     </div>
