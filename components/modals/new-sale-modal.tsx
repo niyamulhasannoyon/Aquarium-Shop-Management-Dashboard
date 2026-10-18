@@ -216,7 +216,19 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
     return null;
   }, [selectedCustomerId, customerName, customers]);
 
+  const handleSelectWalkIn = () => {
+    setIsWalkIn(true);
+    setSelectedCustomerId(null);
+    setCustomerName(language === 'bn' ? 'সাধারণ খদ্দের (ক্যাশ)' : 'General Customer (Cash)');
+    setCustomerPhone('');
+    setSaveToKhata(false);
+    setShowSuggestions(false);
+    setCustomerError(null);
+  };
+
   const handleSelectCustomer = (c: Customer) => {
+    setIsWalkIn(false);
+    setSaveToKhata(true);
     setSelectedCustomerId(c.id);
     setCustomerName(c.name);
     setCustomerPhone(c.phone || '');
@@ -226,6 +238,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
   };
 
   const handleNameChange = (val: string) => {
+    setIsWalkIn(false);
     setCustomerName(val);
     setCustomerError(null);
     setShowSuggestions(true);
@@ -279,24 +292,46 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
     if (cart.length === 0) return;
 
     const trimmedName = customerName.trim();
-    if (!trimmedName) {
-      setCustomerError('Customer name is required. Please enter a customer name.');
+    const isGenericWalkIn =
+      isWalkIn ||
+      ['general customer', 'walk-in customer', 'walk in', 'cash customer', 'সাধারণ খদ্দের', 'সাধারণ খদ্দের (ক্যাশ)', 'ক্যাশ খদ্দের'].includes(
+        trimmedName.toLowerCase()
+      );
+
+    if (dueAmount > 0 && isGenericWalkIn && !selectedCustomerId) {
+      setCustomerError(
+        language === 'bn'
+          ? 'বকেয়া বিক্রির জন্য নির্দিষ্ট কাস্টমারের নাম ও খাতা আবশ্যক।'
+          : 'Customer name is required for due sales so debt is tracked in Khata.'
+      );
+      return;
+    }
+
+    if (!isGenericWalkIn && !trimmedName) {
+      setCustomerError(
+        language === 'bn'
+          ? 'কাস্টমারের নাম প্রদান করুন বা সাধারণ খদ্দের বাছাই করুন।'
+          : 'Customer name is required. Please enter a customer name or select Walk-in.'
+      );
       return;
     }
 
     let finalCustomerId: number | null = selectedCustomerId;
     let newCustomerData: { name: string; phone?: string } | undefined = undefined;
 
-    if (!finalCustomerId) {
+    if (!finalCustomerId && !isGenericWalkIn) {
+      const cleanPhone = customerPhone.trim();
       const existing = customers.find(
-        (c) => c.name.trim().toLowerCase() === trimmedName.toLowerCase()
+        (c) =>
+          c.name.trim().toLowerCase() === trimmedName.toLowerCase() ||
+          (cleanPhone && c.phone && c.phone.trim() === cleanPhone)
       );
       if (existing) {
         finalCustomerId = existing.id;
-      } else {
+      } else if (saveToKhata || dueAmount > 0) {
         newCustomerData = {
           name: trimmedName,
-          phone: customerPhone.trim(),
+          phone: cleanPhone,
         };
       }
     }
@@ -328,6 +363,8 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
     setCustomerName('');
     setCustomerPhone('');
     setSelectedCustomerId(null);
+    setIsWalkIn(false);
+    setSaveToKhata(true);
     setShowSuggestions(false);
     setCustomerError(null);
     onClose();
@@ -356,23 +393,36 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto flex-1">
           {/* Customer Selection & Auto-Suggest */}
           <div className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/70 space-y-3" ref={dropdownRef}>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <label className="block text-xs font-semibold uppercase text-slate-400">
                 {t('modal.newSale.customerInfo')} <span className="text-rose-400">*</span>
               </label>
-              {selectedCustomer ? (
-                <span className="text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" /> {t('modal.newSale.existingCustomer')}
-                </span>
-              ) : customerName.trim() ? (
-                <span className="text-[11px] text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
-                  <UserPlus className="w-3 h-3" /> {t('modal.newSale.newCustomer')}
-                </span>
-              ) : (
-                <span className="text-[11px] text-slate-400 font-medium">
-                  {language === 'bn' ? 'খুঁজতে বা নতুন যোগ করতে নাম লিখুন' : 'Type name to search or auto-add'}
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSelectWalkIn}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all flex items-center gap-1 ${
+                    isWalkIn
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
+                      : 'bg-slate-900/60 text-slate-400 border-slate-700 hover:text-slate-200 hover:border-slate-600'
+                  }`}
+                >
+                  <span>{language === 'bn' ? 'সাধারণ খদ্দের (ক্যাশ)' : 'Walk-in (Cash)'}</span>
+                </button>
+                {selectedCustomer ? (
+                  <span className="text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> {t('modal.newSale.existingCustomer')}
+                  </span>
+                ) : !isWalkIn && customerName.trim() ? (
+                  <span className="text-[11px] text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                    <UserPlus className="w-3 h-3" /> {t('modal.newSale.newCustomer')}
+                  </span>
+                ) : !isWalkIn ? (
+                  <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                    {language === 'bn' ? 'খুঁজতে বা নতুন যোগ করতে নাম লিখুন' : 'Type name to search or auto-add'}
+                  </span>
+                ) : null}
+              </div>
             </div>
 
             {customerError && (
@@ -533,6 +583,38 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
                 >
                   Clear / Change
                 </button>
+              </div>
+            )}
+
+            {/* New Customer Auto-Add Notice & Khata Option */}
+            {!selectedCustomer && !isWalkIn && customerName.trim() && (
+              <div className="p-2.5 rounded-xl bg-slate-900/90 border border-indigo-500/30 flex flex-wrap items-center justify-between gap-2 text-xs animate-in fade-in">
+                <div className="flex items-center space-x-2">
+                  <div className="p-1 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                    <UserPlus className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-white">"{customerName.trim()}"</span>
+                    <span className="text-slate-400 ml-1.5 text-[11px]">
+                      {dueAmount > 0
+                        ? (language === 'bn' ? '• বকেয়া থাকায় স্বয়ংক্রিয়ভাবে খাতায় যুক্ত হবে' : '• Will be auto-registered in Khata to track due')
+                        : (language === 'bn' ? '• নতুন কাস্টমার হিসেবে খাতায় সংরক্ষণ হবে' : '• Will be registered as a new customer in Khata')}
+                    </span>
+                  </div>
+                </div>
+                {dueAmount === 0 && (
+                  <label className="flex items-center space-x-2 cursor-pointer select-none bg-slate-800/80 px-2 py-1 rounded-lg border border-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={saveToKhata}
+                      onChange={(e) => setSaveToKhata(e.target.checked)}
+                      className="rounded border-slate-600 text-indigo-500 focus:ring-indigo-500 h-3.5 w-3.5 bg-slate-900"
+                    />
+                    <span className="text-[11px] text-slate-300 font-medium">
+                      {language === 'bn' ? 'খাতায় সেভ করুন' : 'Save to Khata'}
+                    </span>
+                  </label>
+                )}
               </div>
             )}
           </div>
