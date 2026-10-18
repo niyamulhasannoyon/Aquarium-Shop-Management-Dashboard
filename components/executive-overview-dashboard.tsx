@@ -110,37 +110,63 @@ export const ExecutiveDashboard: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isEditProductOpen, setIsEditProductOpen] = useState(false);
 
+  const isDifferent = (prevList: any[], nextList: any[]) => {
+    if (prevList.length !== nextList.length) return true;
+    return JSON.stringify(prevList) !== JSON.stringify(nextList);
+  };
+
   const applySyncedState = (data: any) => {
     if (!data || !data.success) return;
 
     if (Array.isArray(data.categories)) {
-      setCategories(data.categories);
-      saveStorage(STORAGE_KEYS.CATEGORIES, data.categories);
+      setCategories((prev) => {
+        if (!isDifferent(prev, data.categories)) return prev;
+        saveStorage(STORAGE_KEYS.CATEGORIES, data.categories);
+        return data.categories;
+      });
     }
     if (Array.isArray(data.products)) {
       const cleaned = data.products.filter((p: Product) => p && !DEMO_PRODUCT_NAMES.has(p.name));
-      setProducts(cleaned);
-      saveStorage(STORAGE_KEYS.PRODUCTS, cleaned);
+      setProducts((prev) => {
+        if (!isDifferent(prev, cleaned)) return prev;
+        saveStorage(STORAGE_KEYS.PRODUCTS, cleaned);
+        return cleaned;
+      });
     }
     if (Array.isArray(data.customers)) {
-      setCustomers(data.customers);
-      saveStorage(STORAGE_KEYS.CUSTOMERS, data.customers);
+      setCustomers((prev) => {
+        if (!isDifferent(prev, data.customers)) return prev;
+        saveStorage(STORAGE_KEYS.CUSTOMERS, data.customers);
+        return data.customers;
+      });
     }
     if (Array.isArray(data.sales)) {
-      setSales(data.sales);
-      saveStorage(STORAGE_KEYS.SALES, data.sales);
+      setSales((prev) => {
+        if (!isDifferent(prev, data.sales)) return prev;
+        saveStorage(STORAGE_KEYS.SALES, data.sales);
+        return data.sales;
+      });
     }
     if (Array.isArray(data.sale_items)) {
-      setSaleItems(data.sale_items);
-      saveStorage(STORAGE_KEYS.SALE_ITEMS, data.sale_items);
+      setSaleItems((prev) => {
+        if (!isDifferent(prev, data.sale_items)) return prev;
+        saveStorage(STORAGE_KEYS.SALE_ITEMS, data.sale_items);
+        return data.sale_items;
+      });
     }
     if (Array.isArray(data.purchases)) {
-      setPurchases(data.purchases);
-      saveStorage(STORAGE_KEYS.PURCHASES, data.purchases);
+      setPurchases((prev) => {
+        if (!isDifferent(prev, data.purchases)) return prev;
+        saveStorage(STORAGE_KEYS.PURCHASES, data.purchases);
+        return data.purchases;
+      });
     }
     if (Array.isArray(data.due_collections)) {
-      setDueCollections(data.due_collections);
-      saveStorage(STORAGE_KEYS.DUE_COLLECTIONS, data.due_collections);
+      setDueCollections((prev) => {
+        if (!isDifferent(prev, data.due_collections)) return prev;
+        saveStorage(STORAGE_KEYS.DUE_COLLECTIONS, data.due_collections);
+        return data.due_collections;
+      });
     }
     setSyncStatus('synced');
     setLastSyncTime(new Date().toLocaleTimeString());

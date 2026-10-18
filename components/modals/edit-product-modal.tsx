@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Edit3, Check, FolderPlus, Info, TrendingUp, AlertCircle } from 'lucide-react';
 import { Product, Category } from '@/types/executive';
 import { useLanguage } from '@/context/language-context';
@@ -36,8 +36,18 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
   const [newCategoryName, setNewCategoryName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  const prevIsOpenRef = useRef(false);
+  const prevProductIdRef = useRef<number | null>(null);
+
   useEffect(() => {
-    if (product) {
+    const wasOpen = prevIsOpenRef.current;
+    const prevId = prevProductIdRef.current;
+    prevIsOpenRef.current = isOpen;
+    prevProductIdRef.current = product?.id || null;
+
+    if (!isOpen || !product) return;
+
+    if (!wasOpen || product.id !== prevId) {
       setName(product.name || '');
       setCategoryId(product.category_id || categories[0]?.id || 1);
       setUnit(product.default_unit || 'Piece');
@@ -47,7 +57,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
       setError(null);
       setIsAddingCategory(false);
     }
-  }, [product, categories]);
+  }, [isOpen, product, categories]);
 
   if (!isOpen || !product) return null;
 

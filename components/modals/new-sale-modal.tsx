@@ -83,12 +83,28 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
   ]);
   const [paidAmount, setPaidAmount] = useState<number | ''>('');
 
+  const prevIsOpenRef = useRef(false);
+  const prevInitialCustomerIdRef = useRef<number | null | undefined>(undefined);
+  const customersRef = useRef(customers);
+  customersRef.current = customers;
+  const productsRef = useRef(products);
+  productsRef.current = products;
+
   useEffect(() => {
-    if (isOpen) {
+    const wasOpen = prevIsOpenRef.current;
+    const prevInitialId = prevInitialCustomerIdRef.current;
+    prevIsOpenRef.current = isOpen;
+    prevInitialCustomerIdRef.current = initialCustomerId;
+
+    if (!isOpen) return;
+
+    // Only reset/initialize form when modal transitions from closed to open,
+    // or when initialCustomerId explicitly changes from outside (e.g. selecting different customer from khata)
+    if (!wasOpen || initialCustomerId !== prevInitialId) {
       if (initialCustomerId) {
         setIsWalkIn(false);
         setSaveToKhata(true);
-        const found = customers.find((c) => c.id === initialCustomerId);
+        const found = customersRef.current.find((c) => c.id === initialCustomerId);
         if (found) {
           setSelectedCustomerId(found.id);
           setCustomerName(found.name);
@@ -108,8 +124,18 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
       setShowSuggestions(false);
       setHighlightedIndex(-1);
       setCustomerError(null);
+      setPaidAmount('');
+      const firstProd = productsRef.current[0];
+      setCart([
+        {
+          product_id: firstProd?.id || 1,
+          unit_type: 'single',
+          quantity: 1,
+          unit_price: firstProd?.selling_price || 0,
+        },
+      ]);
     }
-  }, [isOpen, initialCustomerId, customers]);
+  }, [isOpen, initialCustomerId]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

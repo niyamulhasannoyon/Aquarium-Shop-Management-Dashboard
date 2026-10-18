@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -34,8 +34,18 @@ export const EditProductDrawer: React.FC<EditProductDrawerProps> = ({ product, o
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
+  const prevIsOpenRef = useRef(false);
+  const prevProductIdRef = useRef<number | null>(null);
+
   useEffect(() => {
-    if (product) {
+    const wasOpen = prevIsOpenRef.current;
+    const prevId = prevProductIdRef.current;
+    prevIsOpenRef.current = open;
+    prevProductIdRef.current = product?.id || null;
+
+    if (!open || !product) return;
+
+    if (!wasOpen || product.id !== prevId) {
       setName(product.name);
       setCategoryId(product.category_id.toString());
       setDefaultUnit(product.default_unit);
@@ -44,7 +54,7 @@ export const EditProductDrawer: React.FC<EditProductDrawerProps> = ({ product, o
       setCurrentStock(product.current_stock.toString());
       setErrors({});
     }
-  }, [product]);
+  }, [open, product]);
 
   const validate = () => {
     const errs: { [key: string]: string } = {};

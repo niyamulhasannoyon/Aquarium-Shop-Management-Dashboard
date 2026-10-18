@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { ExecutiveDashboard } from '@/components/executive-overview-dashboard';
 import { DeleteCustomerModal } from '@/components/modals/delete-customer-modal';
+import { NewSaleModal } from '@/components/modals/new-sale-modal';
 import { LanguageProvider } from '@/context/language-context';
 import { ThemeProvider } from '@/context/theme-context';
 import { Customer, Sale } from '@/types/executive';
@@ -157,5 +158,75 @@ describe('Customer Management & Professional Deletion', () => {
 
     expect(screen.getByText('Clean Customer')).toBeInTheDocument();
     expect(screen.getByText(/Zero outstanding due/i)).toBeInTheDocument();
+  });
+
+  it('does NOT erase customer name or phone while typing when customers prop updates from background sync', () => {
+    const mockProducts = [
+      {
+        id: 1,
+        category_id: 1,
+        name: 'Guppy Blue',
+        default_unit: 'Pair',
+        cost_price: 100,
+        selling_price: 150,
+        current_stock: 10,
+        created_at: '2026-01-01T10:00:00Z',
+      },
+    ];
+
+    const initialCustomers: Customer[] = [
+      {
+        id: 1,
+        name: 'Existing Customer',
+        phone: '01711000000',
+        address: 'Dhaka',
+        total_due: 0,
+        created_at: '2026-01-01T10:00:00Z',
+      },
+    ];
+
+    const { rerender } = render(
+      <LanguageProvider>
+        <NewSaleModal
+          isOpen={true}
+          onClose={vi.fn()}
+          customers={initialCustomers}
+          products={mockProducts}
+          onSubmitSale={vi.fn()}
+        />
+      </LanguageProvider>
+    );
+
+    const nameInput = screen.getByPlaceholderText('e.g. Rahim Ahmed') as HTMLInputElement;
+    fireEvent.change(nameInput, { target: { value: 'Typing New Customer Name' } });
+    expect(nameInput.value).toBe('Typing New Customer Name');
+
+    // Simulate background sync providing a brand new customers array reference
+    const updatedCustomers: Customer[] = [
+      ...initialCustomers,
+      {
+        id: 2,
+        name: 'Another Customer from Sync',
+        phone: '01811000000',
+        address: 'Chittagong',
+        total_due: 0,
+        created_at: '2026-01-01T11:00:00Z',
+      },
+    ];
+
+    rerender(
+      <LanguageProvider>
+        <NewSaleModal
+          isOpen={true}
+          onClose={vi.fn()}
+          customers={updatedCustomers}
+          products={mockProducts}
+          onSubmitSale={vi.fn()}
+        />
+      </LanguageProvider>
+    );
+
+    // The name input must NOT be erased!
+    expect(nameInput.value).toBe('Typing New Customer Name');
   });
 });

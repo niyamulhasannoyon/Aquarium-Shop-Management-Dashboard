@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, PackagePlus, Check } from 'lucide-react';
 import { Product } from '@/types/executive';
 import { formatCurrency } from '@/lib/calculations';
@@ -36,13 +36,31 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
   const [quantity, setQuantity] = useState<number>(10);
   const [unitCost, setUnitCost] = useState<number>(products[0]?.cost_price || 0);
 
+  const prevIsOpenRef = useRef(false);
+  const prevInitialProductIdRef = useRef<number | null | undefined>(undefined);
+
   useEffect(() => {
-    if (initialProductId) {
-      setSelectedProductId(initialProductId);
-      const prod = products.find((p) => p.id === initialProductId);
-      if (prod) setUnitCost(prod.cost_price);
+    const wasOpen = prevIsOpenRef.current;
+    const prevInitialId = prevInitialProductIdRef.current;
+    prevIsOpenRef.current = isOpen;
+    prevInitialProductIdRef.current = initialProductId;
+
+    if (!isOpen) return;
+
+    if (!wasOpen || initialProductId !== prevInitialId) {
+      if (initialProductId) {
+        setSelectedProductId(initialProductId);
+        const prod = products.find((p) => p.id === initialProductId);
+        if (prod) setUnitCost(prod.cost_price);
+      } else {
+        const firstId = products[0]?.id || 1;
+        setSelectedProductId(firstId);
+        const prod = products[0];
+        if (prod) setUnitCost(prod.cost_price);
+      }
+      setQuantity(10);
     }
-  }, [initialProductId, products]);
+  }, [isOpen, initialProductId, products]);
 
   if (!isOpen) return null;
 
