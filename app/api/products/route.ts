@@ -52,6 +52,12 @@ export async function POST(request: NextRequest) {
         validCatId = Number(category_id);
       }
     }
+    if (!validCatId && body.category_name) {
+      const nameCheck = await client.query('SELECT id FROM categories WHERE LOWER(name) = LOWER($1)', [String(body.category_name).trim()]);
+      if (nameCheck.rows.length > 0) {
+        validCatId = nameCheck.rows[0].id;
+      }
+    }
 
     const costNum = Number(cost_price || 0);
     const sellNum = Number(selling_price || 0);
@@ -143,7 +149,14 @@ export async function PUT(request: NextRequest) {
         validCatId = null;
       } else {
         const catCheck = await pool.query('SELECT id FROM categories WHERE id = $1', [Number(category_id)]);
-        validCatId = catCheck.rows.length > 0 ? Number(category_id) : null;
+        if (catCheck.rows.length > 0) {
+          validCatId = Number(category_id);
+        } else if (body.category_name) {
+          const nameCheck = await pool.query('SELECT id FROM categories WHERE LOWER(name) = LOWER($1)', [String(body.category_name).trim()]);
+          validCatId = nameCheck.rows.length > 0 ? nameCheck.rows[0].id : null;
+        } else {
+          validCatId = null;
+        }
       }
     }
 

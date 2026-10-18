@@ -58,6 +58,7 @@ import { CustomerProfileModal } from '@/components/modals/customer-profile-modal
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { ThemeSwitcher } from '@/components/theme-switcher';
 import { useLanguage } from '@/context/language-context';
+import { createClient as createSupabaseClient } from '@/utils/supabase/client';
 
 export const ExecutiveDashboard: React.FC = () => {
   const { t, language, formatNumber } = useLanguage();
@@ -183,11 +184,13 @@ export const ExecutiveDashboard: React.FC = () => {
 
         // If client has offline items, prepare snapshot to sync to PostgreSQL
         if (
+          (parsedCats && parsedCats.length > 0) ||
           (parsedProds && parsedProds.length > 0) ||
           (parsedSales && parsedSales.length > 0) ||
           (parsedPurchs && parsedPurchs.length > 0)
         ) {
           localDataToSync = {
+            categories: parsedCats || [],
             products: parsedProds || [],
             customers: parsedCusts || [],
             purchases: parsedPurchs || [],
@@ -201,9 +204,9 @@ export const ExecutiveDashboard: React.FC = () => {
       }
     }
 
-    // Initial sync
-    async function performInitialSync() {
-      setSyncStatus('syncing');
+    // Realtime Auto-Sync Engine
+    async function syncData(isBackground = false) {
+      if (!isBackground) setSyncStatus('syncing');
       try {
         let res;
         if (localDataToSync) {
@@ -212,69 +215,117 @@ export const ExecutiveDashboard: React.FC = () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(localDataToSync),
           });
+          localDataToSync = null; // Clear snapshot once uploaded
         } else {
           res = await fetch('/api/sync');
         }
         const data = await res.json();
         if (data?.success) {
           applySyncedState(data);
-        } else {
+        } else if (!isBackground) {
           setSyncStatus('offline');
         }
       } catch {
-        setSyncStatus('offline');
+        if (!isBackground) setSyncStatus('offline');
       }
     }
 
-    performInitialSync();
+    // Initial sync
+    syncData(false);
 
-    // Background interval sync (every 10s)
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch('/api/sync');
-        const data = await res.json();
-        if (data?.success) {
-          applySyncedState(data);
-        }
-      } catch {
-        setSyncStatus('offline');
+    // Fast active background auto-sync interval (every 3.5s for seamless multi-device updates)
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        syncData(true);
       }
-    }, 10000);
+    }, 3500);
 
-    // Re-sync on window focus / tab visibility change
-    const onFocus = async () => {
-      try {
-        setSyncStatus('syncing');
-        const res = await fetch('/api/sync');
-        const data = await res.json();
-        if (data?.success) {
-          applySyncedState(data);
-        }
-      } catch {
-        setSyncStatus('offline');
-      }
+    // Instant re-sync on window focus, tab visibility, or internet reconnect
+    const onFocus = () => syncData(true);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') syncData(true);
     };
 
     window.addEventListener('focus', onFocus);
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') onFocus();
-    };
+    window.addEventListener('online', onFocus);
     document.addEventListener('visibilitychange', onVisibilityChange);
+
+    // Cross-tab / cross-window instant auto-sync via BroadcastChannel
+    let broadcast: BroadcastChannel | null = null;
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        broadcast = new BroadcastChannel('aqua_shop_sync_channel');
+        broadcast.onmessage = (event) => {
+          if (event.data?.type === 'SYNC') {
+            syncData(true);
+          }
+        };
+      } catch {}
+    }
+
+    // Supabase Realtime WebSocket subscription for instant multi-device auto-sync
+    let supabaseChannel: any = null;
+    try {
+      const supabase = createSupabaseClient();
+      if (supabase) {
+        supabaseChannel = supabase
+          .channel('realtime_executive_sync')
+          .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+            syncData(true);
+          })
+          .subscribe();
+      }
+    } catch {}
 
     return () => {
       clearInterval(interval);
       window.removeEventListener('focus', onFocus);
+      window.removeEventListener('online', onFocus);
       document.removeEventListener('visibilitychange', onVisibilityChange);
+      broadcast?.close();
+      if (supabaseChannel) {
+        try {
+          createSupabaseClient()?.removeChannel(supabaseChannel);
+        } catch {}
+      }
     };
   }, []);
+
+  const broadcastSyncEvent = () => {
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        const bc = new BroadcastChannel('aqua_shop_sync_channel');
+        bc.postMessage({ type: 'SYNC', timestamp: Date.now() });
+        bc.close();
+      } catch {}
+    }
+  };
 
   const handleManualSync = async () => {
     setSyncStatus('syncing');
     try {
-      const res = await fetch('/api/sync');
+      let res;
+      if (products.length > 0 || sales.length > 0 || purchases.length > 0) {
+        res = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            categories,
+            products,
+            customers,
+            purchases,
+            sales,
+            sale_items: saleItems,
+            due_collections: dueCollections,
+          }),
+        });
+      } else {
+        res = await fetch('/api/sync');
+      }
       const data = await res.json();
       if (data?.success) {
         applySyncedState(data);
+        broadcastSyncEvent();
       } else {
         setSyncStatus('offline');
       }
@@ -829,6 +880,15 @@ export const ExecutiveDashboard: React.FC = () => {
           saveStorage(STORAGE_KEYS.PRODUCTS, next);
           return next;
         });
+        if (prodData.initial_stock > 0) {
+          setPurchases((prev) => {
+            const next = prev.map((pu) =>
+              pu.product_id === tempProdId ? { ...pu, product_id: data.product.id } : pu
+            );
+            saveStorage(STORAGE_KEYS.PURCHASES, next);
+            return next;
+          });
+        }
       }
     } catch (e) {
       // LocalStorage backup preserved
@@ -1012,7 +1072,7 @@ export const ExecutiveDashboard: React.FC = () => {
               </span>
               <span className="text-[11px] sm:text-xs">
                 {syncStatus === 'synced'
-                  ? (language === 'bn' ? 'অনলাইন সিঙ্ক' : 'Cloud Synced')
+                  ? (language === 'bn' ? 'অটো-সিঙ্ক (লাইভ)' : 'Auto Synced (Live)')
                   : syncStatus === 'syncing'
                   ? (language === 'bn' ? 'সিঙ্ক হচ্ছে...' : 'Syncing...')
                   : (language === 'bn' ? 'অফলাইন' : 'Offline')}

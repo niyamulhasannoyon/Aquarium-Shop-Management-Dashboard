@@ -3,7 +3,37 @@ import pool from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
+const FRESH_AQUARIUM_CATEGORIES = [
+  'Live Fish (একুরিয়াম মাছ)',
+  'Fish Food (মাছের খাবার)',
+  'Aquarium Plants (জলজ উদ্ভিদ ও গাছ)',
+  'Filters & Aeration (ফিল্টার ও অক্সিজেন)',
+  'Water Care & Medicine (ওষুধ ও পানি শোধন)',
+  'Aquarium Tanks (একুরিয়াম ট্যাংক)',
+  'Lights & Heaters (লাইট ও হিটার)',
+  'Soil, Sand & Decor (মাটি, বালি ও শো-পিস)',
+  'Accessories & Tools (এক্সেসরিজ ও পাইপ)',
+];
+
+async function ensureDefaultCategories(clientOrPool: any) {
+  try {
+    const existing = await clientOrPool.query('SELECT COUNT(*)::int AS count FROM categories');
+    if (existing.rows[0]?.count === 0) {
+      for (const catName of FRESH_AQUARIUM_CATEGORIES) {
+        await clientOrPool.query(
+          `INSERT INTO categories (name, created_at) VALUES ($1, NOW())`,
+          [catName]
+        );
+      }
+    }
+  } catch (e) {
+    console.warn('Could not auto-seed default categories:', e);
+  }
+}
+
 async function fetchFullDatabaseState(clientOrPool: any) {
+  await ensureDefaultCategories(clientOrPool);
+
   const [catRes, prodRes, custRes, salesRes, itemsRes, purchRes, dueRes] = await Promise.all([
     clientOrPool.query(`
       SELECT 
@@ -136,6 +166,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const {
+      categories = [],
       products = [],
       customers = [],
       purchases = [],
@@ -147,57 +178,126 @@ export async function POST(request: NextRequest) {
     client = await pool.connect();
     await client.query('BEGIN');
 
-    // 1. Migrate any local customers not in DB
+    // 0. Ensure default categories exist in DB
+    await ensureDefaultCategories(client);
+
+    // Synchronize Categories
+    const dbCatRes = await client.query('SELECT id, name FROM categories');
+    const dbCatMap = new Map<string, number>(); // name lowercase -> id
+    const dbCatIdSet = new Set<number>();
+    for (const c of dbCatRes.rows) {
+      dbCatMap.set(c.name.toLowerCase().trim(), c.id);
+      dbCatIdSet.add(c.id);
+    }
+
+    const localToDbCatId = new Map<number, number>();
+    for (const lc of categories) {
+      if (!lc.name || !lc.name.trim()) continue;
+      const cleanName = lc.name.trim().toLowerCase();
+      const matchId = dbCatMap.get(cleanName) || (dbCatIdSet.has(lc.id) ? lc.id : undefined);
+
+      if (matchId) {
+        localToDbCatId.set(lc.id, matchId);
+      } else {
+        const ins = await client.query(
+          `INSERT INTO categories (name, created_at) VALUES ($1, $2) RETURNING id`,
+          [lc.name.trim(), lc.created_at || new Date().toISOString()]
+        );
+        const newId = ins?.rows?.[0]?.id || Math.floor(Math.random() * 100000);
+        dbCatMap.set(cleanName, newId);
+        dbCatIdSet.add(newId);
+        localToDbCatId.set(lc.id, newId);
+      }
+    }
+
+    // 1. Synchronize Customers
     const dbCustRes = await client.query('SELECT id, name, phone FROM customers');
-    const dbCustMap = new Map<string, number>();
+    const dbCustMap = new Map<string, number>(); // name lowercase -> id
+    const dbCustPhoneMap = new Map<string, number>();
+    const dbCustIdSet = new Set<number>();
     for (const c of dbCustRes.rows) {
       dbCustMap.set(c.name.toLowerCase().trim(), c.id);
-      if (c.phone) dbCustMap.set(c.phone.trim(), c.id);
+      if (c.phone) dbCustPhoneMap.set(c.phone.trim(), c.id);
+      dbCustIdSet.add(c.id);
     }
 
     const localToDbCustId = new Map<number, number>();
     for (const lc of customers) {
-      const matchId = dbCustMap.get(lc.name?.toLowerCase().trim()) || (lc.phone ? dbCustMap.get(lc.phone.trim()) : undefined);
+      if (!lc.name || !lc.name.trim()) continue;
+      const cleanName = lc.name.trim().toLowerCase();
+      const cleanPhone = lc.phone ? lc.phone.trim() : '';
+
+      const matchId =
+        (dbCustIdSet.has(lc.id) ? lc.id : undefined) ||
+        dbCustMap.get(cleanName) ||
+        (cleanPhone ? dbCustPhoneMap.get(cleanPhone) : undefined);
+
       if (matchId) {
         localToDbCustId.set(lc.id, matchId);
-      } else if (lc.name && lc.name.trim()) {
+      } else {
         const ins = await client.query(
           `INSERT INTO customers (name, phone, address, total_due, created_at)
            VALUES ($1, $2, $3, $4, $5) RETURNING id`,
           [
             lc.name.trim(),
-            lc.phone || '',
+            cleanPhone,
             lc.address || '',
             Number(lc.total_due || 0),
             lc.created_at || new Date().toISOString(),
           ]
         );
-        const newId = ins.rows[0].id;
-        dbCustMap.set(lc.name.toLowerCase().trim(), newId);
+        const newId = ins?.rows?.[0]?.id || Math.floor(Math.random() * 100000);
+        dbCustMap.set(cleanName, newId);
+        if (cleanPhone) dbCustPhoneMap.set(cleanPhone, newId);
+        dbCustIdSet.add(newId);
         localToDbCustId.set(lc.id, newId);
       }
     }
 
-    // 2. Migrate any local products not in DB
-    const dbProdRes = await client.query('SELECT id, name FROM products');
-    const dbProdMap = new Map<string, number>();
+    // 2. Synchronize Products
+    const dbProdRes = await client.query('SELECT id, name, current_stock FROM products');
+    const dbProdMap = new Map<string, number>(); // name lowercase -> id
+    const dbProdIdSet = new Set<number>();
     for (const p of dbProdRes.rows) {
       dbProdMap.set(p.name.toLowerCase().trim(), p.id);
+      dbProdIdSet.add(p.id);
     }
 
     const localToDbProdId = new Map<number, number>();
     for (const lp of products) {
       if (!lp.name || !lp.name.trim()) continue;
-      const matchId = dbProdMap.get(lp.name.toLowerCase().trim());
+      const cleanName = lp.name.trim().toLowerCase();
+
+      // Safely resolve category_id to ensure NO foreign key violation
+      let targetCatId: number | null = null;
+      if (lp.category_id && localToDbCatId.has(lp.category_id)) {
+        targetCatId = localToDbCatId.get(lp.category_id)!;
+      } else if (lp.category_name && dbCatMap.has(lp.category_name.toLowerCase().trim())) {
+        targetCatId = dbCatMap.get(lp.category_name.toLowerCase().trim())!;
+      } else if (lp.category_id && dbCatIdSet.has(Number(lp.category_id))) {
+        targetCatId = Number(lp.category_id);
+      }
+      if (targetCatId !== null && !dbCatIdSet.has(targetCatId)) {
+        targetCatId = null;
+      }
+
+      const matchId = (dbProdIdSet.has(lp.id) ? lp.id : undefined) || dbProdMap.get(cleanName);
+
       if (matchId) {
         localToDbProdId.set(lp.id, matchId);
+        if (targetCatId !== null) {
+          await client.query(
+            `UPDATE products SET category_id = COALESCE(category_id, $1) WHERE id = $2`,
+            [targetCatId, matchId]
+          );
+        }
       } else {
         const ins = await client.query(
           `INSERT INTO products (name, category_id, default_unit, cost_price, selling_price, current_stock, created_at)
            VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
           [
             lp.name.trim(),
-            lp.category_id || null,
+            targetCatId,
             lp.default_unit || 'piece',
             Number(lp.cost_price || 0),
             Number(lp.selling_price || 0),
@@ -205,21 +305,28 @@ export async function POST(request: NextRequest) {
             lp.created_at || new Date().toISOString(),
           ]
         );
-        const newId = ins.rows[0].id;
-        dbProdMap.set(lp.name.toLowerCase().trim(), newId);
+        const newId = ins?.rows?.[0]?.id || Math.floor(Math.random() * 100000);
+        dbProdMap.set(cleanName, newId);
+        dbProdIdSet.add(newId);
         localToDbProdId.set(lp.id, newId);
       }
     }
 
-    // 3. Migrate purchases if not in DB
-    const dbPurchRes = await client.query('SELECT id, product_id, purchase_date FROM purchases');
+    // 3. Synchronize Purchases
+    const dbPurchRes = await client.query('SELECT id, product_id, purchase_date, quantity FROM purchases');
     for (const lp of purchases) {
-      const targetProdId = localToDbProdId.get(lp.product_id) || lp.product_id;
-      const prodExists = Array.from(dbProdMap.values()).includes(targetProdId);
-      if (!prodExists) continue;
+      const targetProdId =
+        localToDbProdId.get(lp.product_id) ||
+        (lp.product_name ? dbProdMap.get(lp.product_name.toLowerCase().trim()) : undefined) ||
+        (dbProdIdSet.has(lp.product_id) ? lp.product_id : undefined);
+
+      if (!targetProdId || !dbProdIdSet.has(targetProdId)) continue;
 
       const alreadyExists = dbPurchRes.rows.some(
-        (dp: any) => dp.product_id === targetProdId && Math.abs(new Date(dp.purchase_date).getTime() - new Date(lp.purchase_date).getTime()) < 5000
+        (dp: any) =>
+          dp.product_id === targetProdId &&
+          Math.abs(new Date(dp.purchase_date).getTime() - new Date(lp.purchase_date).getTime()) < 10000 &&
+          Math.abs(Number(dp.quantity) - Number(lp.quantity)) < 0.01
       );
 
       if (!alreadyExists) {
@@ -239,14 +346,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. Migrate sales and sale_items if not in DB
+    // 4. Synchronize Sales and Sale Items
     const dbSalesRes = await client.query('SELECT id, invoice_no FROM sales');
     const existingInvoices = new Set(dbSalesRes.rows.map((s: any) => s.invoice_no));
 
     for (const ls of sales) {
       if (!ls.invoice_no || existingInvoices.has(ls.invoice_no)) continue;
 
-      const targetCustId = ls.customer_id ? (localToDbCustId.get(ls.customer_id) || ls.customer_id) : null;
+      let targetCustId: number | null = null;
+      if (ls.customer_id) {
+        targetCustId =
+          localToDbCustId.get(ls.customer_id) ||
+          (dbCustIdSet.has(ls.customer_id) ? ls.customer_id : null);
+      }
+      if (!targetCustId && ls.customer_name && dbCustMap.has(ls.customer_name.toLowerCase().trim())) {
+        targetCustId = dbCustMap.get(ls.customer_name.toLowerCase().trim())!;
+      }
+
       const saleIns = await client.query(
         `INSERT INTO sales (invoice_no, customer_id, total_amount, paid_amount, due_amount, sale_date)
          VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
@@ -259,12 +375,18 @@ export async function POST(request: NextRequest) {
           ls.sale_date || new Date().toISOString(),
         ]
       );
-      const newSaleId = saleIns.rows[0].id;
+      const newSaleId = saleIns?.rows?.[0]?.id || Math.floor(Math.random() * 100000);
       existingInvoices.add(ls.invoice_no);
 
       const itemsForSale = sale_items.filter((si: any) => si.sale_id === ls.id);
       for (const it of itemsForSale) {
-        const prodId = localToDbProdId.get(it.product_id) || it.product_id;
+        const prodId =
+          localToDbProdId.get(it.product_id) ||
+          (it.product_name ? dbProdMap.get(it.product_name.toLowerCase().trim()) : undefined) ||
+          (dbProdIdSet.has(it.product_id) ? it.product_id : undefined);
+
+        if (!prodId || !dbProdIdSet.has(prodId)) continue;
+
         await client.query(
           `INSERT INTO sale_items (sale_id, product_id, unit_type, quantity, multiplier, stock_deduct_qty, unit_price, cost_price_snapshot, subtotal)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
@@ -283,14 +405,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 5. Migrate due collections if not in DB
-    const dbDueRes = await client.query('SELECT id, customer_id, payment_date FROM due_collections');
+    // 5. Synchronize Due Collections
+    const dbDueRes = await client.query('SELECT id, customer_id, payment_date, amount_paid FROM due_collections');
     for (const ld of due_collections) {
-      const targetCustId = localToDbCustId.get(ld.customer_id) || ld.customer_id;
+      const targetCustId =
+        localToDbCustId.get(ld.customer_id) ||
+        (dbCustIdSet.has(ld.customer_id) ? ld.customer_id : null);
+      if (!targetCustId || !dbCustIdSet.has(targetCustId)) continue;
+
       const alreadyExists = dbDueRes.rows.some(
-        (dd: any) => dd.customer_id === targetCustId && Math.abs(new Date(dd.payment_date).getTime() - new Date(ld.payment_date).getTime()) < 5000
+        (dd: any) =>
+          dd.customer_id === targetCustId &&
+          Math.abs(new Date(dd.payment_date).getTime() - new Date(ld.payment_date).getTime()) < 10000 &&
+          Math.abs(Number(dd.amount_paid) - Number(ld.amount_paid)) < 0.01
       );
-      if (!alreadyExists && targetCustId) {
+
+      if (!alreadyExists) {
         await client.query(
           `INSERT INTO due_collections (customer_id, amount_paid, note, payment_date)
            VALUES ($1, $2, $3, $4)`,
@@ -305,8 +435,10 @@ export async function POST(request: NextRequest) {
     }
 
     await client.query('COMMIT');
+    client.release();
+    client = null;
 
-    const freshState = await fetchFullDatabaseState(client);
+    const freshState = await fetchFullDatabaseState(pool);
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),

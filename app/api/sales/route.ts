@@ -106,32 +106,59 @@ export async function POST(request: NextRequest) {
     const providedPhone = (walkInPhone || bodyCustomerPhone || new_customer?.phone || '').trim();
 
     if (targetCustId) {
-      finalCustomerId = Number(targetCustId);
-      const custRes = await client.query(`SELECT name, phone FROM customers WHERE id = $1`, [finalCustomerId]);
+      const custRes = await client.query(
+        `SELECT id, name, phone FROM customers WHERE id = $1`,
+        [Number(targetCustId)]
+      );
       if (custRes.rows.length > 0) {
+        finalCustomerId = custRes.rows[0].id;
         customerName = custRes.rows[0].name;
         customerPhone = custRes.rows[0].phone || '';
       }
-    } else if (providedName) {
+    }
+
+    // If customer was not found by ID, look up or create from provided name/phone
+    if (!finalCustomerId && providedName) {
       customerName = providedName;
       customerPhone = providedPhone;
 
-      // Check if existing customer matches name or phone number
-      const existingCustRes = await client.query(
-        `SELECT id, name FROM customers WHERE LOWER(name) = LOWER($1) OR (phone != '' AND phone = $2) LIMIT 1`,
-        [customerName, customerPhone]
+      const isGeneric = ['general customer', 'walk-in customer', 'walk in', 'cash customer', 'সাধারণ খদ্দের', 'ক্যাশ খদ্দের'].includes(
+        providedName.toLowerCase()
       );
 
-      if (existingCustRes.rows.length > 0) {
-        finalCustomerId = existingCustRes.rows[0].id;
-        customerName = existingCustRes.rows[0].name;
+      if (isGeneric && (isWalkIn || parsedDue === 0)) {
+        finalCustomerId = null;
       } else {
-        // Automatically insert new customer
-        const newCustRes = await client.query(
-          `INSERT INTO customers (name, phone, address, total_due, created_at) VALUES ($1, $2, '', 0, NOW()) RETURNING id`,
-          [customerName, customerPhone]
-        );
-        finalCustomerId = newCustRes.rows[0].id;
+        // Check if existing customer matches name or phone number
+        let existingCustRes;
+        if (customerPhone) {
+          existingCustRes = await client.query(
+            `SELECT id, name, phone FROM customers WHERE phone = $1 OR LOWER(name) = LOWER($2) LIMIT 1`,
+            [customerPhone, customerName]
+          );
+        } else {
+          existingCustRes = await client.query(
+            `SELECT id, name, phone FROM customers WHERE LOWER(name) = LOWER($1) LIMIT 1`,
+            [customerName]
+          );
+        }
+
+        if (existingCustRes && existingCustRes.rows.length > 0) {
+          finalCustomerId = existingCustRes.rows[0].id;
+          customerName = existingCustRes.rows[0].name;
+          customerPhone = existingCustRes.rows[0].phone || customerPhone;
+        } else if (isWalkIn && parsedDue === 0) {
+          finalCustomerId = null;
+        } else {
+          // Automatically insert new customer
+          const newCustRes = await client.query(
+            `INSERT INTO customers (name, phone, address, total_due, created_at)
+             VALUES ($1, $2, '', 0, NOW())
+             RETURNING id, name, phone, address, total_due::float AS total_due, created_at`,
+            [customerName, customerPhone]
+          );
+          finalCustomerId = newCustRes.rows[0].id;
+        }
       }
     }
 
@@ -198,6 +225,18 @@ export async function POST(request: NextRequest) {
       processedItems.push(itemInsert.rows[0]);
     }
 
+    // Fetch trigger-updated customer record if linked
+    let customerData = null;
+    if (finalCustomerId) {
+      const cRes = await client.query(
+        `SELECT id, name, phone, address, total_due::float AS total_due, created_at FROM customers WHERE id = $1`,
+        [finalCustomerId]
+      );
+      if (cRes.rows.length > 0) {
+        customerData = cRes.rows[0];
+      }
+    }
+
     // Commit Transaction
     await client.query('COMMIT');
 
@@ -214,6 +253,7 @@ export async function POST(request: NextRequest) {
         customer_name: customerName,
         customer_phone: customerPhone,
       },
+      customer: customerData,
       sale_items: processedItems,
     });
 

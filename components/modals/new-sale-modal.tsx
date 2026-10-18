@@ -64,6 +64,8 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [customerName, setCustomerName] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
+  const [isWalkIn, setIsWalkIn] = useState<boolean>(false);
+  const [saveToKhata, setSaveToKhata] = useState<boolean>(true);
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const [customerError, setCustomerError] = useState<string | null>(null);
@@ -84,6 +86,8 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       if (initialCustomerId) {
+        setIsWalkIn(false);
+        setSaveToKhata(true);
         const found = customers.find((c) => c.id === initialCustomerId);
         if (found) {
           setSelectedCustomerId(found.id);
@@ -98,6 +102,8 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
         setSelectedCustomerId(null);
         setCustomerName('');
         setCustomerPhone('');
+        setIsWalkIn(false);
+        setSaveToKhata(true);
       }
       setShowSuggestions(false);
       setHighlightedIndex(-1);
