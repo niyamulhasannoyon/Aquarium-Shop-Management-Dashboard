@@ -68,7 +68,7 @@ export const KpiSummaryCards: React.FC<KpiSummaryCardsProps> = ({ metrics }) => 
       key: 'kpi.inventoryValue',
       title: t('kpi.inventoryValue'),
       shortTitle: t('kpi.inventoryValue'),
-      amount: metrics.availableInventoryValuation,
+      amount: Math.max(0, Number(metrics.availableInventoryValuation) || 0),
       description: t('kpi.inventoryValueSub'),
       icon: Boxes,
       gradient: 'from-purple-600/20 to-purple-900/10 border-purple-500/30 text-purple-400',

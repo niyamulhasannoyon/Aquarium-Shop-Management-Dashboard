@@ -26,6 +26,7 @@ export async function GET() {
         si.id,
         si.sale_id,
         si.product_id,
+        COALESCE(pr.name, 'Product') AS product_name,
         si.unit_type,
         si.quantity::float AS quantity,
         si.multiplier,
@@ -34,6 +35,7 @@ export async function GET() {
         si.cost_price_snapshot::float AS cost_price_snapshot,
         si.subtotal::float AS subtotal
       FROM sale_items si
+      LEFT JOIN products pr ON si.product_id = pr.id
       ORDER BY si.id ASC
     `);
 

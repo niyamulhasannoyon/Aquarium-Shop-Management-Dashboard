@@ -127,7 +127,7 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
               ) : (
                 products.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} ({language === 'bn' ? 'বর্তমান স্টক' : 'Current Stock'}: {formatNumber(p.current_stock)} {p.default_unit || 'Pcs'})
+                    {p.name} ({language === 'bn' ? 'বর্তমান স্টক' : 'Current Stock'}: {formatNumber(Math.max(0, Number(p.current_stock) || 0))} {p.default_unit || 'Pcs'})
                   </option>
                 ))
               )}

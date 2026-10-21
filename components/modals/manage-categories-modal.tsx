@@ -22,6 +22,7 @@ interface ManageCategoriesModalProps {
   onAddCategory: (name: string) => Promise<void>;
   onEditCategory: (id: number, newName: string) => Promise<void>;
   onDeleteCategory: (id: number) => Promise<void>;
+  onDeleteAllCategories?: () => Promise<void>;
 }
 
 export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
@@ -32,6 +33,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
   onAddCategory,
   onEditCategory,
   onDeleteCategory,
+  onDeleteAllCategories,
 }) => {
   const { language } = useLanguage();
   const [newCatName, setNewCatName] = useState('');
@@ -39,6 +41,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
 
   if (!isOpen) return null;
 
@@ -88,6 +91,17 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (!onDeleteAllCategories) return;
+    setIsSubmitting(true);
+    try {
+      await onDeleteAllCategories();
+      setConfirmDeleteAll(false);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const getProductCount = (catId: number) => {
     return products.filter((p) => p.category_id === catId).length;
   };
@@ -110,17 +124,56 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
               </h3>
               <p className="text-xs text-slate-400">
                 {language === 'bn'
-                  ? 'দোকানের ক্যাটাগরি তৈরি, নাম পরিবর্তন, ডিলিট বা ফ্রেশ করুন'
-                  : 'Add, rename, delete, or reset shop categories'}
+                  ? 'দোকানের ক্যাটাগরি তৈরি, নাম পরিবর্তন বা ডিলিট করুন'
+                  : 'Add, rename, or delete shop categories'}
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center space-x-2">
+            {confirmDeleteAll ? (
+              <div className="flex items-center space-x-1.5 bg-rose-950/60 border border-rose-500/50 px-2.5 py-1.5 rounded-xl animate-in fade-in">
+                <span className="text-xs text-rose-300 font-semibold hidden sm:inline">
+                  {language === 'bn' ? 'সব ডিলিট করবেন?' : 'Delete all?'}
+                </span>
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={handleDeleteAll}
+                  className="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
+                >
+                  {language === 'bn' ? 'হ্যাঁ' : 'Yes'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDeleteAll(false)}
+                  className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition-all"
+                >
+                  {language === 'bn' ? 'না' : 'No'}
+                </button>
+              </div>
+            ) : (
+              categories.length > 0 && onDeleteAllCategories && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmDeleteAll(true);
+                    setConfirmDeleteId(null);
+                  }}
+                  className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/30 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all active:scale-95"
+                  title={language === 'bn' ? 'সব ক্যাটাগরি ডিলিট করুন' : 'Delete All Categories'}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{language === 'bn' ? 'সব ডিলিট' : 'Delete All'}</span>
+                </button>
+              )
+            )}
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Add Category Input */}

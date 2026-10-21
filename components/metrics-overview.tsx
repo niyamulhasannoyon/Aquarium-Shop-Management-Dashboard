@@ -9,9 +9,15 @@ export const MetricsOverview: React.FC = () => {
   const { products } = useInventory();
 
   const totalProducts = products.length;
-  const lowStockCount = products.filter((p) => p.current_stock < 5).length;
-  const totalStockUnits = products.reduce((acc, p) => acc + p.current_stock, 0);
-  const totalInventoryValue = products.reduce((acc, p) => acc + p.cost_price * p.current_stock, 0);
+  const lowStockCount = products.filter((p) => (Number(p.current_stock) || 0) <= 5).length;
+  const totalStockUnits = Math.max(0, products.reduce((acc, p) => acc + Math.max(0, Number(p.current_stock) || 0), 0));
+  const totalInventoryValue = Math.max(
+    0,
+    products.reduce(
+      (acc, p) => acc + Math.max(0, Number(p.cost_price) || 0) * Math.max(0, Number(p.current_stock) || 0),
+      0
+    )
+  );
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

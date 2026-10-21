@@ -12,6 +12,7 @@ import {
   UserPlus,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import { Customer, Product } from '@/types/executive';
 import { formatCurrency } from '@/lib/calculations';
@@ -682,10 +683,11 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
                           </option>
                         ) : (
                           products.map((p) => {
-                            const pStockJora = (p.current_stock / 2).toFixed(1).replace(/\.0$/, '');
+                            const safeStock = Math.max(0, Number(p.current_stock) || 0);
+                            const pStockJora = (safeStock / 2).toFixed(1).replace(/\.0$/, '');
                             return (
                               <option key={p.id} value={p.id}>
-                                {p.name} (Stock: {p.current_stock} Pcs / {pStockJora} Jora)
+                                {p.name} (Stock: {safeStock} Pcs / {pStockJora} Jora)
                               </option>
                             );
                           })
@@ -752,6 +754,26 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
                         </div>
                       </div>
                     </div>
+
+                    {/* Stock Warning if requested > available */}
+                    {(() => {
+                      const prod = products.find((p) => p.id === item.product_id);
+                      const availablePieces = Math.max(0, Number(prod?.current_stock) || 0);
+                      const requestedPieces = item.quantity * (item.unit_type === 'jora' ? 2 : 1);
+                      if (requestedPieces > availablePieces) {
+                        return (
+                          <div className="flex items-center text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg mt-1 font-medium">
+                            <AlertTriangle className="w-3.5 h-3.5 mr-1.5 shrink-0 text-amber-400" />
+                            <span>
+                              {language === 'bn'
+                                ? `স্টকের চেয়ে বেশি পরিমাণ (${requestedPieces} পিস > বর্তমান স্টক: ${availablePieces} পিস)`
+                                : `Requested ${requestedPieces} Pcs exceeds current stock (${availablePieces} Pcs)`}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                 );
               })}

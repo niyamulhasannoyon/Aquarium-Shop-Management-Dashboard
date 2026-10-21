@@ -12,12 +12,14 @@ export async function GET() {
         p.category_id,
         COALESCE(c.name, 'Uncategorized') AS category_name,
         p.default_unit,
-        p.cost_price::float AS cost_price,
-        p.selling_price::float AS selling_price,
-        p.current_stock::float AS current_stock,
-        p.created_at
+        GREATEST(0, p.cost_price)::float AS cost_price,
+        GREATEST(0, p.selling_price)::float AS selling_price,
+        GREATEST(0, p.current_stock)::float AS current_stock,
+        p.created_at,
+        COALESCE(p.is_deleted, false) AS is_deleted
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
+      WHERE COALESCE(p.is_deleted, false) = false
       ORDER BY p.id ASC
     `);
     
@@ -59,16 +61,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const costNum = Number(cost_price || 0);
-    const sellNum = Number(selling_price || 0);
-    const stockNum = Number(initial_stock || 0);
+    const costNum = Math.max(0, Number(cost_price || 0));
+    const sellNum = Math.max(0, Number(selling_price || 0));
+    const stockNum = Math.max(0, Number(initial_stock || 0));
     const unitStr = default_unit || 'Piece';
 
     // Insert product (if stockNum > 0, start with 0 because purchases trigger will increment it)
     const result = await client.query(
       `INSERT INTO products (name, category_id, default_unit, cost_price, selling_price, current_stock, created_at)
        VALUES ($1, $2, $3, $4, $5, 0, NOW())
-       RETURNING id, name, category_id, default_unit, cost_price::float, selling_price::float, current_stock::float, created_at`,
+       RETURNING id, name, category_id, default_unit, GREATEST(0, cost_price)::float AS cost_price, GREATEST(0, selling_price)::float AS selling_price, GREATEST(0, current_stock)::float AS current_stock, created_at`,
       [
         name.trim(),
         validCatId,
@@ -103,9 +105,9 @@ export async function POST(request: NextRequest) {
          p.category_id, 
          COALESCE(c.name, 'Uncategorized') AS category_name, 
          p.default_unit, 
-         p.cost_price::float, 
-         p.selling_price::float, 
-         p.current_stock::float, 
+         GREATEST(0, p.cost_price)::float AS cost_price, 
+         GREATEST(0, p.selling_price)::float AS selling_price, 
+         GREATEST(0, p.current_stock)::float AS current_stock, 
          p.created_at
        FROM products p
        LEFT JOIN categories c ON p.category_id = c.id
@@ -166,20 +168,20 @@ export async function PUT(request: NextRequest) {
          name = COALESCE($2, name),
          category_id = CASE WHEN $3::boolean THEN $4::int ELSE category_id END,
          default_unit = COALESCE($5, default_unit),
-         cost_price = COALESCE($6, cost_price),
-         selling_price = COALESCE($7, selling_price),
-         current_stock = COALESCE($8, current_stock)
-       WHERE id = $1
-       RETURNING id, name, category_id, default_unit, cost_price::float, selling_price::float, current_stock::float, created_at`,
+         cost_price = GREATEST(0, COALESCE($6, cost_price)),
+         selling_price = GREATEST(0, COALESCE($7, selling_price)),
+         current_stock = GREATEST(0, COALESCE($8, current_stock))
+       WHERE id = $1 AND COALESCE(is_deleted, false) = false
+       RETURNING id, name, category_id, default_unit, GREATEST(0, cost_price)::float AS cost_price, GREATEST(0, selling_price)::float AS selling_price, GREATEST(0, current_stock)::float AS current_stock, created_at`,
       [
         Number(id),
         name ? name.trim() : null,
         category_id !== undefined,
         validCatId,
         default_unit || null,
-        cost_price !== undefined ? Number(cost_price) : null,
-        selling_price !== undefined ? Number(selling_price) : null,
-        current_stock !== undefined ? Number(current_stock) : null,
+        cost_price !== undefined ? Math.max(0, Number(cost_price)) : null,
+        selling_price !== undefined ? Math.max(0, Number(selling_price)) : null,
+        current_stock !== undefined ? Math.max(0, Number(current_stock)) : null,
       ]
     );
 
@@ -208,6 +210,7 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  let client;
   try {
     const { searchParams } = new URL(request.url);
     const idParam = searchParams.get('id');
@@ -220,13 +223,74 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Product ID is required' }, { status: 400 });
     }
 
-    await pool.query('DELETE FROM products WHERE id = $1', [id]);
-    return NextResponse.json({ success: true, deletedId: id });
+    client = await pool.connect();
+    await client.query('BEGIN');
+
+    // 1. Verify product exists
+    const prodRes = await client.query(
+      `SELECT id, name, category_id, current_stock FROM products WHERE id = $1`,
+      [id]
+    );
+
+    if (prodRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 });
+    }
+
+    const productToDelete = prodRes.rows[0];
+
+    // 2. Check for historical sale references in sale_items
+    const salesCheck = await client.query(
+      `SELECT COUNT(*)::int AS count FROM sale_items WHERE product_id = $1`,
+      [id]
+    );
+    const salesCount = salesCheck.rows[0]?.count || 0;
+
+    let deleteMode = 'hard';
+
+    if (salesCount > 0) {
+      // Product has historical sales!
+      // In accordance with retail accounting standards, soft-delete to preserve
+      // sales invoice integrity, financial reporting, and avoid foreign key constraint failure.
+      await client.query(
+        `UPDATE products SET is_deleted = TRUE, current_stock = 0 WHERE id = $1`,
+        [id]
+      );
+      deleteMode = 'soft';
+    } else {
+      // Product has never been sold. Safely clean up associated purchase records, then delete row.
+      await client.query(
+        `DELETE FROM purchases WHERE product_id = $1`,
+        [id]
+      );
+      await client.query(
+        `DELETE FROM products WHERE id = $1`,
+        [id]
+      );
+      deleteMode = 'hard';
+    }
+
+    await client.query('COMMIT');
+
+    return NextResponse.json({
+      success: true,
+      deletedId: id,
+      product: productToDelete,
+      mode: deleteMode,
+      message: `Product "${productToDelete.name}" successfully deleted.`,
+    });
   } catch (error: any) {
+    if (client) {
+      await client.query('ROLLBACK').catch(() => {});
+    }
     console.error('Error deleting product:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Failed to delete product' },
       { status: 500 }
     );
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
 }

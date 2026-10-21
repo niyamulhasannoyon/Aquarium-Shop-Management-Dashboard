@@ -64,11 +64,16 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const savedProducts = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
       const savedPurchases = localStorage.getItem(STORAGE_KEYS.PURCHASES);
 
-      if (savedCategories) {
-        setCategories(JSON.parse(savedCategories));
+      if (savedCategories !== null) {
+        try {
+          const parsed = JSON.parse(savedCategories);
+          setCategories(Array.isArray(parsed) ? parsed : []);
+        } catch {
+          setCategories([]);
+        }
       } else {
-        setCategories(INITIAL_CATEGORIES);
-        localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(INITIAL_CATEGORIES));
+        setCategories([]);
+        localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify([]));
       }
 
       if (savedProducts) {

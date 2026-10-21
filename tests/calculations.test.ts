@@ -159,6 +159,24 @@ describe('Executive Overview Dashboard Calculations', () => {
     expect(valuation).toBe(14000);
   });
 
+  it('guarantees Available Inventory Valuation is never negative even if negative stock exists', () => {
+    const productsWithNegative: any[] = [
+      { id: 1, name: 'Fish A', current_stock: -5, cost_price: 60, selling_price: 120 },
+      { id: 2, name: 'Fish B', current_stock: -10, cost_price: 100, selling_price: 200 },
+    ];
+    const valuation = calculateAvailableInventoryValuation(productsWithNegative);
+    expect(valuation).toBe(0);
+
+    const mixedProducts: any[] = [
+      { id: 1, name: 'Fish A', current_stock: -5, cost_price: 60, selling_price: 120 },
+      { id: 2, name: 'Fish B', current_stock: 10, cost_price: 50, selling_price: 100 },
+    ];
+    // negative stock product should count as 0 on-hand physical stock, not deduct from inventory value!
+    // 0 + (10 * 50) = 500
+    const mixedValuation = calculateAvailableInventoryValuation(mixedProducts);
+    expect(mixedValuation).toBe(500);
+  });
+
   it('retrieves recent sales correctly sorted by date descending', () => {
     const recent = getRecentSales(sampleSales, sampleCustomers, 5);
     expect(recent).toHaveLength(2);

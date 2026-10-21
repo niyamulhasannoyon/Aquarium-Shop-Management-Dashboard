@@ -63,14 +63,15 @@ export const LowStockWarningTable: React.FC<LowStockWarningTableProps> = ({
           {/* Mobile Card View (screen sizes < md) */}
           <div className="block md:hidden space-y-3">
             {lowStockItems.map((item) => {
-              const isCritical = item.current_stock <= 5;
-              const joraCount = (item.current_stock / 2).toFixed(1).replace(/\.0$/, '');
+              const safeStock = Math.max(0, Number(item.current_stock) || 0);
+              const isCritical = safeStock <= 5;
+              const joraCount = (safeStock / 2).toFixed(1).replace(/\.0$/, '');
               const isPieceOrPair = ['piece', 'pcs', 'jora', 'pair'].includes((item.default_unit || '').toLowerCase());
               const unitPairLabel = language === 'bn' ? 'জোড়া' : 'Pair';
               const unitPcsLabel = language === 'bn' ? 'পিস' : 'Pcs';
               const stockLabel = isPieceOrPair
-                ? `${formatNumber(item.current_stock)} ${unitPcsLabel} (${formatNumber(joraCount)} ${unitPairLabel})`
-                : `${formatNumber(item.current_stock)} ${item.default_unit}s`;
+                ? `${formatNumber(safeStock)} ${unitPcsLabel} (${formatNumber(joraCount)} ${unitPairLabel})`
+                : `${formatNumber(safeStock)} ${item.default_unit}s`;
 
               return (
                 <div
@@ -129,14 +130,15 @@ export const LowStockWarningTable: React.FC<LowStockWarningTableProps> = ({
               </thead>
               <tbody className="divide-y divide-slate-800/60">
                 {lowStockItems.map((item) => {
-                  const isCritical = item.current_stock <= 5;
-                  const joraCount = (item.current_stock / 2).toFixed(1).replace(/\.0$/, '');
+                  const safeStock = Math.max(0, Number(item.current_stock) || 0);
+                  const isCritical = safeStock <= 5;
+                  const joraCount = (safeStock / 2).toFixed(1).replace(/\.0$/, '');
                   const isPieceOrPair = ['piece', 'pcs', 'jora', 'pair'].includes((item.default_unit || '').toLowerCase());
                   const unitPairLabel = language === 'bn' ? 'জোড়া' : 'Pair';
                   const unitPcsLabel = language === 'bn' ? 'পিস' : 'Pcs';
                   const stockLabel = isPieceOrPair
-                    ? `${formatNumber(item.current_stock)} ${unitPcsLabel} (${formatNumber(joraCount)} ${unitPairLabel})`
-                    : `${formatNumber(item.current_stock)} ${item.default_unit}s`;
+                    ? `${formatNumber(safeStock)} ${unitPcsLabel} (${formatNumber(joraCount)} ${unitPairLabel})`
+                    : `${formatNumber(safeStock)} ${item.default_unit}s`;
 
                   return (
                     <tr

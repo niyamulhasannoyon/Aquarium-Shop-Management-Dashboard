@@ -1,148 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pool from '@/lib/db';
+import pool, { cleanupDuplicateCategories, fetchFullDatabaseState } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
-
-const FRESH_AQUARIUM_CATEGORIES = [
-  'Live Fish (একুরিয়াম মাছ)',
-  'Fish Food (মাছের খাবার)',
-  'Aquarium Plants (জলজ উদ্ভিদ ও গাছ)',
-  'Filters & Aeration (ফিল্টার ও অক্সিজেন)',
-  'Water Care & Medicine (ওষুধ ও পানি শোধন)',
-  'Aquarium Tanks (একুরিয়াম ট্যাংক)',
-  'Lights & Heaters (লাইট ও হিটার)',
-  'Soil, Sand & Decor (মাটি, বালি ও শো-পিস)',
-  'Accessories & Tools (এক্সেসরিজ ও পাইপ)',
-];
-
-async function ensureDefaultCategories(clientOrPool: any) {
-  try {
-    const existing = await clientOrPool.query('SELECT COUNT(*)::int AS count FROM categories');
-    if (existing.rows[0]?.count === 0) {
-      for (const catName of FRESH_AQUARIUM_CATEGORIES) {
-        await clientOrPool.query(
-          `INSERT INTO categories (name, created_at) VALUES ($1, NOW())`,
-          [catName]
-        );
-      }
-    }
-  } catch (e) {
-    console.warn('Could not auto-seed default categories:', e);
-  }
-}
-
-async function fetchFullDatabaseState(clientOrPool: any) {
-  await ensureDefaultCategories(clientOrPool);
-
-  const [catRes, prodRes, custRes, salesRes, itemsRes, purchRes, dueRes] = await Promise.all([
-    clientOrPool.query(`
-      SELECT 
-        c.id,
-        c.name,
-        c.created_at,
-        COUNT(p.id)::int AS product_count
-      FROM categories c
-      LEFT JOIN products p ON c.id = p.category_id
-      GROUP BY c.id, c.name, c.created_at
-      ORDER BY c.id ASC
-    `),
-    clientOrPool.query(`
-      SELECT 
-        p.id,
-        p.name,
-        p.category_id,
-        COALESCE(c.name, 'Uncategorized') AS category_name,
-        p.default_unit,
-        p.cost_price::float AS cost_price,
-        p.selling_price::float AS selling_price,
-        p.current_stock::float AS current_stock,
-        p.created_at
-      FROM products p
-      LEFT JOIN categories c ON p.category_id = c.id
-      ORDER BY p.id ASC
-    `),
-    clientOrPool.query(`
-      SELECT 
-        id, 
-        name, 
-        phone, 
-        address, 
-        total_due::float AS total_due,
-        created_at
-      FROM customers
-      ORDER BY name ASC
-    `),
-    clientOrPool.query(`
-      SELECT 
-        s.id,
-        s.invoice_no,
-        s.customer_id,
-        s.total_amount::float AS total_amount,
-        s.paid_amount::float AS paid_amount,
-        s.due_amount::float AS due_amount,
-        s.sale_date,
-        COALESCE(c.name, 'General Customer') AS customer_name,
-        COALESCE(c.phone, '') AS customer_phone
-      FROM sales s
-      LEFT JOIN customers c ON s.customer_id = c.id
-      ORDER BY s.sale_date DESC, s.id DESC
-    `),
-    clientOrPool.query(`
-      SELECT 
-        si.id,
-        si.sale_id,
-        si.product_id,
-        si.unit_type,
-        si.quantity::float AS quantity,
-        si.multiplier,
-        si.stock_deduct_qty::float AS stock_deduct_qty,
-        si.unit_price::float AS unit_price,
-        si.cost_price_snapshot::float AS cost_price_snapshot,
-        si.subtotal::float AS subtotal
-      FROM sale_items si
-      ORDER BY si.id ASC
-    `),
-    clientOrPool.query(`
-      SELECT 
-        p.id,
-        p.product_id,
-        COALESCE(pr.name, 'Unknown Product') AS product_name,
-        p.unit_type,
-        p.quantity::float AS quantity,
-        p.multiplier,
-        p.total_pieces_added::float AS total_pieces_added,
-        p.unit_cost::float AS unit_cost,
-        p.total_investment::float AS total_investment,
-        p.purchase_date
-      FROM purchases p
-      LEFT JOIN products pr ON p.product_id = pr.id
-      ORDER BY p.purchase_date DESC, p.id DESC
-    `),
-    clientOrPool.query(`
-      SELECT 
-        dc.id, 
-        dc.customer_id, 
-        COALESCE(c.name, 'Customer') AS customer_name,
-        COALESCE(c.phone, '') AS customer_phone,
-        dc.amount_paid::float AS amount_paid, 
-        dc.note, 
-        dc.payment_date
-      FROM due_collections dc
-      LEFT JOIN customers c ON dc.customer_id = c.id
-      ORDER BY dc.payment_date DESC, dc.id DESC
-    `),
-  ]);
-
-  return {
-    categories: catRes.rows,
-    products: prodRes.rows,
-    customers: custRes.rows,
-    sales: salesRes.rows,
-    sale_items: itemsRes.rows,
-    purchases: purchRes.rows,
-    due_collections: dueRes.rows,
-  };
-}
 
 export async function GET() {
   try {
@@ -178,8 +37,8 @@ export async function POST(request: NextRequest) {
     client = await pool.connect();
     await client.query('BEGIN');
 
-    // 0. Ensure default categories exist in DB
-    await ensureDefaultCategories(client);
+    // 0. Ensure duplicate categories are cleanly pruned in DB
+    await cleanupDuplicateCategories(client);
 
     // Synchronize Categories
     const dbCatRes = await client.query('SELECT id, name FROM categories');
@@ -299,9 +158,9 @@ export async function POST(request: NextRequest) {
             lp.name.trim(),
             targetCatId,
             lp.default_unit || 'piece',
-            Number(lp.cost_price || 0),
-            Number(lp.selling_price || 0),
-            Number(lp.current_stock || 0),
+            Math.max(0, Number(lp.cost_price || 0)),
+            Math.max(0, Number(lp.selling_price || 0)),
+            Math.max(0, Number(lp.current_stock || 0)),
             lp.created_at || new Date().toISOString(),
           ]
         );

@@ -28,8 +28,9 @@ CREATE TABLE IF NOT EXISTS products (
     default_unit VARCHAR DEFAULT 'piece',
     cost_price NUMERIC(10,2) NOT NULL DEFAULT 0,
     selling_price NUMERIC(10,2) NOT NULL DEFAULT 0,
-    current_stock NUMERIC(10,2) NOT NULL DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    current_stock NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (current_stock >= 0),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 -- Purchases Table
@@ -94,6 +95,7 @@ CREATE TABLE IF NOT EXISTS due_collections (
 -- ------------------------------------------------------------------------------
 
 CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
+CREATE INDEX IF NOT EXISTS idx_products_is_deleted ON products(is_deleted);
 CREATE INDEX IF NOT EXISTS idx_purchases_product_id ON purchases(product_id);
 CREATE INDEX IF NOT EXISTS idx_sales_customer_id ON sales(customer_id);
 CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id ON sale_items(sale_id);
@@ -104,31 +106,54 @@ CREATE INDEX IF NOT EXISTS idx_due_collections_customer_id ON due_collections(cu
 -- 3. AUTOMATED TRIGGER FUNCTIONS AND TRIGGERS
 -- ------------------------------------------------------------------------------
 
--- Trigger 1: Increment product stock on purchase insertion
+-- Trigger 1: Maintain product stock on purchase insert, update, or delete
 CREATE OR REPLACE FUNCTION trg_fn_update_stock_on_purchase()
 RETURNS TRIGGER AS $$
 BEGIN
-    UPDATE products
-    SET current_stock = current_stock + NEW.total_pieces_added
-    WHERE id = NEW.product_id;
-    
-    RETURN NEW;
+    IF (TG_OP = 'INSERT') THEN
+        UPDATE products
+        SET current_stock = GREATEST(0, current_stock + NEW.total_pieces_added)
+        WHERE id = NEW.product_id;
+        RETURN NEW;
+    ELSIF (TG_OP = 'UPDATE') THEN
+        IF OLD.product_id != NEW.product_id THEN
+            UPDATE products
+            SET current_stock = GREATEST(0, current_stock - OLD.total_pieces_added)
+            WHERE id = OLD.product_id;
+
+            UPDATE products
+            SET current_stock = GREATEST(0, current_stock + NEW.total_pieces_added)
+            WHERE id = NEW.product_id;
+        ELSE
+            UPDATE products
+            SET current_stock = GREATEST(0, current_stock + (NEW.total_pieces_added - OLD.total_pieces_added))
+            WHERE id = NEW.product_id;
+        END IF;
+        RETURN NEW;
+    ELSIF (TG_OP = 'DELETE') THEN
+        UPDATE products
+        SET current_stock = GREATEST(0, current_stock - OLD.total_pieces_added)
+        WHERE id = OLD.product_id;
+        RETURN OLD;
+    END IF;
+    RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_purchases_increment_stock ON purchases;
-CREATE TRIGGER trg_purchases_increment_stock
-AFTER INSERT ON purchases
+DROP TRIGGER IF EXISTS trg_purchases_stock_trigger ON purchases;
+CREATE TRIGGER trg_purchases_stock_trigger
+AFTER INSERT OR UPDATE OR DELETE ON purchases
 FOR EACH ROW
 EXECUTE FUNCTION trg_fn_update_stock_on_purchase();
 
 
--- Trigger 2: Deduct product stock on sale item insertion
+-- Trigger 2: Deduct product stock on sale item insertion (guarantees stock never drops below 0)
 CREATE OR REPLACE FUNCTION trg_fn_update_stock_on_sale_item()
 RETURNS TRIGGER AS $$
 BEGIN
     UPDATE products
-    SET current_stock = current_stock - NEW.stock_deduct_qty
+    SET current_stock = GREATEST(0, current_stock - NEW.stock_deduct_qty)
     WHERE id = NEW.product_id;
     
     RETURN NEW;

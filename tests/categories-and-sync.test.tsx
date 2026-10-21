@@ -143,4 +143,56 @@ describe('Categories Management & Multi-Device Sync', () => {
       screen.queryByText(/Reset to Fresh Aquarium Categories|ফ্রেশ ক্যাটাগরি সেট রিসেট করুন/i)
     ).not.toBeInTheDocument();
   });
+
+  it('renders Delete All Categories button and executes deletion upon confirmation', async () => {
+    const onDeleteAllMock = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <LanguageProvider>
+        <ManageCategoriesModal
+          isOpen={true}
+          onClose={() => {}}
+          categories={[
+            { id: 1, name: 'Live Fish (একুরিয়াম মাছ)', created_at: '2026-01-01T10:00:00Z' },
+            { id: 2, name: 'Fish Food (মাছের খাবার)', created_at: '2026-01-01T10:00:00Z' },
+          ]}
+          products={[]}
+          onAddCategory={vi.fn()}
+          onEditCategory={vi.fn()}
+          onDeleteCategory={vi.fn()}
+          onDeleteAllCategories={onDeleteAllMock}
+        />
+      </LanguageProvider>
+    );
+
+    const deleteAllBtn = screen.getByTitle(/Delete All Categories|সব ক্যাটাগরি ডিলিট করুন/i);
+    expect(deleteAllBtn).toBeInTheDocument();
+    fireEvent.click(deleteAllBtn);
+
+    // Confirmation prompt should appear
+    const confirmBtn = screen.getByText(/Yes, Delete All|Yes|হ্যাঁ/i);
+    expect(confirmBtn).toBeInTheDocument();
+    fireEvent.click(confirmBtn);
+
+    expect(onDeleteAllMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('displays empty state when categories are deleted and does not auto-add categories', () => {
+    render(
+      <LanguageProvider>
+        <ManageCategoriesModal
+          isOpen={true}
+          onClose={() => {}}
+          categories={[]}
+          products={[]}
+          onAddCategory={vi.fn()}
+          onEditCategory={vi.fn()}
+          onDeleteCategory={vi.fn()}
+        />
+      </LanguageProvider>
+    );
+
+    expect(screen.getByText(/No categories found|কোনো ক্যাটাগরি নেই/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Live Fish/i)).not.toBeInTheDocument();
+  });
 });

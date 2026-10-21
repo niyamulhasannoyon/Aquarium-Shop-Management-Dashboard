@@ -15,6 +15,7 @@ import {
   ArrowUpDown,
   Filter,
   Trash2,
+  Clock,
 } from 'lucide-react';
 import { Product, Category } from '@/types/executive';
 import { useLanguage } from '@/context/language-context';
@@ -27,6 +28,8 @@ interface ProductInventoryLedgerProps {
   onOpenAddProduct: () => void;
   onOpenManageCategories?: () => void;
   onDeleteProduct?: (productId: number) => void;
+  onRequestDeleteProduct?: (product: Product) => void;
+  onViewStockHistory?: () => void;
 }
 
 export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
@@ -37,6 +40,8 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
   onOpenAddProduct,
   onOpenManageCategories,
   onDeleteProduct,
+  onRequestDeleteProduct,
+  onViewStockHistory,
 }) => {
   const { t, language, formatCurrency, formatNumber } = useLanguage();
 
@@ -53,8 +58,8 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
     let lowStockCount = 0;
 
     for (const p of products) {
-      const stock = Number(p.current_stock) || 0;
-      const cost = Number(p.cost_price) || 0;
+      const stock = Math.max(0, Number(p.current_stock) || 0);
+      const cost = Math.max(0, Number(p.cost_price) || 0);
       totalUnits += stock;
       totalValuation += stock * cost;
 
@@ -67,8 +72,8 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
 
     return {
       totalProducts: products.length,
-      totalUnits,
-      totalValuation,
+      totalUnits: Math.max(0, totalUnits),
+      totalValuation: Math.max(0, totalValuation),
       outOfStockCount,
       lowStockCount,
     };
@@ -165,6 +170,15 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
             <PackagePlus className="w-4 h-4" />
             <span>{t('quickActions.addStock')}</span>
           </button>
+          {onViewStockHistory && (
+            <button
+              onClick={onViewStockHistory}
+              className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center space-x-1.5 transition-all shadow-md shadow-indigo-950 min-h-[44px]"
+            >
+              <Clock className="w-4 h-4" />
+              <span>{t('stockLedger.viewHistory')}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -383,12 +397,12 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
               </tr>
             ) : (
               filteredProducts.map((p) => {
-                const stock = Number(p.current_stock) || 0;
-                const cost = Number(p.cost_price) || 0;
-                const selling = Number(p.selling_price) || 0;
+                const stock = Math.max(0, Number(p.current_stock) || 0);
+                const cost = Math.max(0, Number(p.cost_price) || 0);
+                const selling = Math.max(0, Number(p.selling_price) || 0);
                 const margin = selling - cost;
                 const marginPercent = cost > 0 ? ((margin / cost) * 100).toFixed(0) : '0';
-                const stockValuation = stock * cost;
+                const stockValuation = Math.max(0, stock * cost);
                 const catName = categoryMap.get(p.category_id) || 'Uncategorized';
 
                 return (
@@ -482,11 +496,15 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
                         >
                           <PackagePlus className="w-4 h-4" />
                         </button>
-                        {onDeleteProduct && (
+                        {(onRequestDeleteProduct || onDeleteProduct) && (
                           <button
                             onClick={() => {
-                              if (window.confirm(`Are you sure you want to delete "${p.name}"?`)) {
-                                onDeleteProduct(p.id);
+                              if (onRequestDeleteProduct) {
+                                onRequestDeleteProduct(p);
+                              } else if (onDeleteProduct) {
+                                if (window.confirm(`Are you sure you want to delete "${p.name}"?`)) {
+                                  onDeleteProduct(p.id);
+                                }
                               }
                             }}
                             title="Delete Product"
@@ -514,9 +532,9 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
           </div>
         ) : (
           filteredProducts.map((p) => {
-            const stock = Number(p.current_stock) || 0;
-            const cost = Number(p.cost_price) || 0;
-            const selling = Number(p.selling_price) || 0;
+            const stock = Math.max(0, Number(p.current_stock) || 0);
+            const cost = Math.max(0, Number(p.cost_price) || 0);
+            const selling = Math.max(0, Number(p.selling_price) || 0);
             const margin = selling - cost;
             const catName = categoryMap.get(p.category_id) || 'Uncategorized';
 
@@ -565,12 +583,12 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
                   <div>
                     <span className="text-slate-500 block text-[10px]">Unit Margin:</span>
                     <span className={margin >= 0 ? 'text-emerald-400 font-semibold' : 'text-rose-400 font-semibold'}>
-                      +{formatCurrency(margin)}
+                      {margin >= 0 ? '+' : ''}{formatCurrency(margin)}
                     </span>
                   </div>
                   <div>
                     <span className="text-slate-500 block text-[10px]">Stock Valuation:</span>
-                    <span className="text-emerald-400">{formatCurrency(stock * cost)}</span>
+                    <span className="text-emerald-400">{formatCurrency(Math.max(0, stock * cost))}</span>
                   </div>
                 </div>
 
@@ -590,11 +608,15 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
                     <PackagePlus className="w-3.5 h-3.5" />
                     <span>{t('quickActions.addStock')}</span>
                   </button>
-                  {onDeleteProduct && (
+                  {(onRequestDeleteProduct || onDeleteProduct) && (
                     <button
                       onClick={() => {
-                        if (window.confirm(`Are you sure you want to delete "${p.name}"?`)) {
-                          onDeleteProduct(p.id);
+                        if (onRequestDeleteProduct) {
+                          onRequestDeleteProduct(p);
+                        } else if (onDeleteProduct) {
+                          if (window.confirm(`Are you sure you want to delete "${p.name}"?`)) {
+                            onDeleteProduct(p.id);
+                          }
                         }
                       }}
                       className="p-2 bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/30 text-rose-300 rounded-xl text-xs font-bold flex items-center justify-center transition-all min-h-[40px] min-w-[40px] active:scale-95"

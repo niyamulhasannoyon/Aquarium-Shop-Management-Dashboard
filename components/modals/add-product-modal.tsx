@@ -29,7 +29,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
 }) => {
   const { t, language } = useLanguage();
   const [name, setName] = useState('');
-  const [categoryId, setCategoryId] = useState<number>(categories[0]?.id || 1);
+  const [categoryId, setCategoryId] = useState<number>(categories[0]?.id || 0);
   const [unit, setUnit] = useState('piece');
   const [costPrice, setCostPrice] = useState<number>(100);
   const [sellingPrice, setSellingPrice] = useState<number>(120);
@@ -158,7 +158,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
               >
                 {categories.length === 0 ? (
-                  <option value={1}>{language === 'bn' ? 'সাধারণ (General)' : 'General'}</option>
+                  <option value={0}>{language === 'bn' ? 'সাধারণ (Uncategorized)' : 'Uncategorized'}</option>
                 ) : (
                   categories.map((c) => (
                     <option key={c.id} value={c.id}>

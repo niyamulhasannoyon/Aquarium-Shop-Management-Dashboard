@@ -13,11 +13,15 @@ export interface Product {
   selling_price: number;
   current_stock: number;
   created_at?: string;
+  is_deleted?: boolean;
 }
 
 export interface Purchase {
   id: number;
   product_id: number;
+  product_name?: string;
+  category_id?: number | null;
+  category_name?: string;
   unit_type: string;
   quantity: number;
   multiplier: number;
@@ -50,6 +54,7 @@ export interface SaleItem {
   id: number;
   sale_id: number;
   product_id: number;
+  product_name?: string;
   unit_type: string;
   quantity: number;
   multiplier: number;

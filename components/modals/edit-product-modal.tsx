@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Edit3, Check, FolderPlus, Info, TrendingUp, AlertCircle } from 'lucide-react';
+import { X, Edit3, Check, FolderPlus, Info, TrendingUp, AlertCircle, Trash2 } from 'lucide-react';
 import { Product, Category } from '@/types/executive';
 import { useLanguage } from '@/context/language-context';
 
@@ -12,6 +12,7 @@ interface EditProductModalProps {
   categories: Category[];
   onUpdateProduct: (product: Product) => void;
   onAddCategory?: (categoryName: string) => void;
+  onDeleteProduct?: (product: Product) => void;
 }
 
 export const EditProductModal: React.FC<EditProductModalProps> = ({
@@ -21,11 +22,12 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
   categories,
   onUpdateProduct,
   onAddCategory,
+  onDeleteProduct,
 }) => {
-  const { t, formatCurrency, formatNumber } = useLanguage();
+  const { t, language, formatCurrency, formatNumber } = useLanguage();
 
   const [name, setName] = useState('');
-  const [categoryId, setCategoryId] = useState<number>(1);
+  const [categoryId, setCategoryId] = useState<number>(categories[0]?.id || 0);
   const [unit, setUnit] = useState('Piece');
   const [costPrice, setCostPrice] = useState<number>(0);
   const [sellingPrice, setSellingPrice] = useState<number>(0);
@@ -49,7 +51,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
 
     if (!wasOpen || product.id !== prevId) {
       setName(product.name || '');
-      setCategoryId(product.category_id || categories[0]?.id || 1);
+      setCategoryId(product.category_id || categories[0]?.id || 0);
       setUnit(product.default_unit || 'Piece');
       setCostPrice(Number(product.cost_price) || 0);
       setSellingPrice(Number(product.selling_price) || 0);
@@ -195,11 +197,15 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
               onChange={(e) => setCategoryId(Number(e.target.value))}
               className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-teal-500 transition-colors"
             >
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
+              {categories.length === 0 ? (
+                <option value={0}>{language === 'bn' ? 'সাধারণ (Uncategorized)' : 'Uncategorized'}</option>
+              ) : (
+                categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))
+              )}
             </select>
           </div>
 
@@ -303,21 +309,36 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-3 border-t border-slate-800">
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors min-h-[44px] flex items-center justify-center"
-            >
-              {t('btn.cancel')}
-            </button>
-            <button
-              type="submit"
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 transition-all shadow-lg shadow-teal-950 flex items-center justify-center space-x-2 min-h-[44px] active:scale-95"
-            >
-              <Check className="w-4 h-4" />
-              <span>{t('btn.save')}</span>
-            </button>
+          <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-2 sm:gap-3 pt-3 border-t border-slate-800">
+            {onDeleteProduct ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onDeleteProduct(product);
+                }}
+                className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all min-h-[44px] flex items-center justify-center space-x-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{language === 'bn' ? 'পণ্য ডিলিট করুন' : 'Delete Product'}</span>
+              </button>
+            ) : <div />}
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors min-h-[44px] flex items-center justify-center"
+              >
+                {t('btn.cancel')}
+              </button>
+              <button
+                type="submit"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 transition-all shadow-lg shadow-teal-950 flex items-center justify-center space-x-2 min-h-[44px] active:scale-95"
+              >
+                <Check className="w-4 h-4" />
+                <span>{t('btn.save')}</span>
+              </button>
+            </div>
           </div>
         </form>
       </div>

@@ -108,13 +108,15 @@ export function calculateRealizedNetProfit(saleItems: SaleItem[]): number {
 
 /**
  * 5. Available Inventory Valuation: Current sum of (products.current_stock * products.cost_price).
+ * Strictly non-negative: physical in-stock items and valuation cannot drop below 0.
  */
 export function calculateAvailableInventoryValuation(products: Product[]): number {
-  return products.reduce((sum, p) => {
-    const stock = Number(p.current_stock) || 0;
-    const cost = Number(p.cost_price) || 0;
+  const total = products.reduce((sum, p) => {
+    const stock = Math.max(0, Number(p.current_stock) || 0);
+    const cost = Math.max(0, Number(p.cost_price) || 0);
     return sum + (stock * cost);
   }, 0);
+  return Math.max(0, total);
 }
 
 /**
@@ -149,11 +151,11 @@ export function calculateMetricsForTimeframe(
   const filteredSaleIds = new Set(filteredSales.map((s) => s.id));
   const filteredSaleItems = data.saleItems.filter((si) => filteredSaleIds.has(si.sale_id));
 
-  const totalSalesRevenue = calculateTotalSalesRevenue(filteredSales);
-  const totalStockInvestment = calculateTotalStockInvestment(filteredPurchases);
-  const totalOutstandingDue = calculateTotalOutstandingDue(data.customers); // Always current total due
+  const totalSalesRevenue = Math.max(0, calculateTotalSalesRevenue(filteredSales));
+  const totalStockInvestment = Math.max(0, calculateTotalStockInvestment(filteredPurchases));
+  const totalOutstandingDue = Math.max(0, calculateTotalOutstandingDue(data.customers)); // Always current total due
   const realizedNetProfit = calculateRealizedNetProfit(filteredSaleItems);
-  const availableInventoryValuation = calculateAvailableInventoryValuation(data.products);
+  const availableInventoryValuation = Math.max(0, calculateAvailableInventoryValuation(data.products));
   const totalDueCollectionsAmount = filteredDueCollections.reduce((acc, c) => acc + (Number(c.amount_paid) || 0), 0);
 
   return {
@@ -182,11 +184,11 @@ export function calculateAllMetrics(data: {
   products: Product[];
 }): KpiSummaryMetrics {
   return {
-    totalStockInvestment: calculateTotalStockInvestment(data.purchases),
-    totalSalesRevenue: calculateTotalSalesRevenue(data.sales),
-    totalOutstandingDue: calculateTotalOutstandingDue(data.customers),
+    totalStockInvestment: Math.max(0, calculateTotalStockInvestment(data.purchases)),
+    totalSalesRevenue: Math.max(0, calculateTotalSalesRevenue(data.sales)),
+    totalOutstandingDue: Math.max(0, calculateTotalOutstandingDue(data.customers)),
     realizedNetProfit: calculateRealizedNetProfit(data.saleItems),
-    availableInventoryValuation: calculateAvailableInventoryValuation(data.products),
+    availableInventoryValuation: Math.max(0, calculateAvailableInventoryValuation(data.products)),
   };
 }
 
@@ -222,7 +224,8 @@ export function getCombinedActivityFeed(data: {
     const itemsSummary = items
       .map((i) => {
         const prod = productMap.get(i.product_id);
-        return `${i.quantity} ${i.unit_type} ${prod ? prod.name : 'Product'}`;
+        const name = prod?.name || i.product_name || 'Product';
+        return `${i.quantity} ${i.unit_type} ${name}`;
       })
       .join(', ');
 
@@ -246,13 +249,14 @@ export function getCombinedActivityFeed(data: {
   // 2. Purchase Events (Restock / Buying)
   data.purchases.forEach((p) => {
     const prod = productMap.get(p.product_id);
+    const prodName = prod?.name || p.product_name || 'Product';
     events.push({
       id: `pur-${p.id}`,
       type: 'purchase',
       timestamp: new Date(p.purchase_date).getTime(),
       dateStr: p.purchase_date,
       ref: `PO-${p.id.toString().padStart(4, '0')}`,
-      title: `Stock Purchase (${prod ? prod.name : 'Product'})`,
+      title: `Stock Purchase (${prodName})`,
       partyName: 'Supplier / Wholesale (মহাজন/পাইকারি)',
       itemsSummary: `Bought ${p.quantity} ${p.unit_type} @ ৳${p.unit_cost}/${p.unit_type}`,
       totalAmount: p.total_investment,
@@ -338,16 +342,16 @@ export function getLowStockProducts(
   categories.forEach((cat) => categoryMap.set(cat.id, cat.name));
 
   return products
-    .filter((p) => (Number(p.current_stock) || 0) <= threshold)
-    .sort((a, b) => (Number(a.current_stock) || 0) - (Number(b.current_stock) || 0))
+    .filter((p) => Math.max(0, Number(p.current_stock) || 0) <= threshold)
+    .sort((a, b) => Math.max(0, Number(a.current_stock) || 0) - Math.max(0, Number(b.current_stock) || 0))
     .map((p) => ({
       id: p.id,
       name: p.name,
       category_name: p.category_id ? categoryMap.get(p.category_id) || 'Uncategorized' : 'Uncategorized',
-      current_stock: Number(p.current_stock) || 0,
+      current_stock: Math.max(0, Number(p.current_stock) || 0),
       default_unit: p.default_unit || 'piece',
-      cost_price: Number(p.cost_price) || 0,
-      selling_price: Number(p.selling_price) || 0,
+      cost_price: Math.max(0, Number(p.cost_price) || 0),
+      selling_price: Math.max(0, Number(p.selling_price) || 0),
       threshold,
     }));
 }
@@ -363,4 +367,171 @@ export function formatCurrency(amount: number): string {
     minimumFractionDigits: 0,
   }).format(amount).replace('BDT', '৳');
 }
+
+/**
+ * Deduplicate categories by id and case-insensitive trimmed name
+ */
+export function deduplicateCategories(categories: Category[]): Category[] {
+  if (!Array.isArray(categories)) return [];
+  const seenIds = new Set<number>();
+  const seenNames = new Set<string>();
+  const deduped: Category[] = [];
+
+  for (const cat of categories) {
+    if (!cat || typeof cat.name !== 'string') continue;
+    const cleanName = cat.name.trim().toLowerCase();
+    if (!cleanName) continue;
+    if (seenIds.has(cat.id) || seenNames.has(cleanName)) continue;
+    seenIds.add(cat.id);
+    seenNames.add(cleanName);
+    deduped.push(cat);
+  }
+  return deduped;
+}
+
+export interface MonthlyStockProductSummary {
+  productId: number;
+  productName: string;
+  categoryId: number | null;
+  categoryName: string;
+  totalQuantity: number;
+  totalInvestment: number;
+  purchasesCount: number;
+  unitType: string;
+  latestUnitCost: number;
+  currentStock: number;
+}
+
+export interface MonthlyStockGroup {
+  monthKey: string;
+  monthLabel: string;
+  year: number;
+  month: number;
+  totalQuantity: number;
+  totalInvestment: number;
+  purchasesCount: number;
+  uniqueProductsCount: number;
+  purchases: Purchase[];
+  productSummaries: MonthlyStockProductSummary[];
+}
+
+/**
+ * Group purchases by calendar month and aggregate product-wise and monthly totals.
+ */
+export function groupPurchasesByMonth(
+  purchases: Purchase[],
+  products: Product[] = [],
+  categories: Category[] = []
+): MonthlyStockGroup[] {
+  if (!Array.isArray(purchases)) return [];
+
+  const categoryMap = new Map<number, string>();
+  categories.forEach((c) => categoryMap.set(c.id, c.name));
+
+  const productMap = new Map<number, Product>();
+  products.forEach((p) => productMap.set(p.id, p));
+
+  const groups = new Map<string, {
+    monthKey: string;
+    monthLabel: string;
+    year: number;
+    month: number;
+    purchases: Purchase[];
+  }>();
+
+  for (const p of purchases) {
+    if (!p) continue;
+    const dateObj = p.purchase_date ? new Date(p.purchase_date) : new Date();
+    const validDate = isNaN(dateObj.getTime()) ? new Date() : dateObj;
+    const year = validDate.getFullYear();
+    const month = validDate.getMonth() + 1;
+    const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+    const monthLabel = validDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+    if (!groups.has(monthKey)) {
+      groups.set(monthKey, {
+        monthKey,
+        monthLabel,
+        year,
+        month,
+        purchases: [],
+      });
+    }
+    groups.get(monthKey)!.purchases.push(p);
+  }
+
+  // Sort months descending (latest first)
+  const sortedMonthKeys = Array.from(groups.keys()).sort((a, b) => b.localeCompare(a));
+
+  return sortedMonthKeys.map((mKey) => {
+    const group = groups.get(mKey)!;
+    const groupPurchases = group.purchases.sort((a, b) => {
+      const timeA = new Date(a.purchase_date).getTime();
+      const timeB = new Date(b.purchase_date).getTime();
+      return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
+    });
+
+    let totalQuantity = 0;
+    let totalInvestment = 0;
+    const prodSummaryMap = new Map<number, MonthlyStockProductSummary>();
+
+    for (const p of groupPurchases) {
+      const mult = Number(p.multiplier) || 1;
+      const qty = (Number(p.quantity) || 0) * mult;
+      const cost = Number(p.unit_cost) || 0;
+      const invest = Number(p.total_investment) || (qty * cost);
+
+      totalQuantity += qty;
+      totalInvestment += invest;
+
+      const prod = productMap.get(p.product_id);
+      const prodName = p.product_name || prod?.name || `Product #${p.product_id}`;
+      const catId = p.category_id !== undefined ? p.category_id : (prod?.category_id ?? null);
+      const catName = p.category_name || (catId ? categoryMap.get(catId) || 'Uncategorized' : 'Uncategorized');
+      const unitType = p.unit_type || prod?.default_unit || 'piece';
+      const curStock = Number(prod?.current_stock) || 0;
+
+      if (!prodSummaryMap.has(p.product_id)) {
+        prodSummaryMap.set(p.product_id, {
+          productId: p.product_id,
+          productName: prodName,
+          categoryId: catId,
+          categoryName: catName,
+          totalQuantity: 0,
+          totalInvestment: 0,
+          purchasesCount: 0,
+          unitType,
+          latestUnitCost: cost,
+          currentStock: curStock,
+        });
+      }
+
+      const summary = prodSummaryMap.get(p.product_id)!;
+      summary.totalQuantity += qty;
+      summary.totalInvestment += invest;
+      summary.purchasesCount += 1;
+      if (cost > 0) {
+        summary.latestUnitCost = cost;
+      }
+    }
+
+    const productSummaries = Array.from(prodSummaryMap.values()).sort(
+      (a, b) => b.totalQuantity - a.totalQuantity
+    );
+
+    return {
+      monthKey: group.monthKey,
+      monthLabel: group.monthLabel,
+      year: group.year,
+      month: group.month,
+      totalQuantity,
+      totalInvestment,
+      purchasesCount: groupPurchases.length,
+      uniqueProductsCount: productSummaries.length,
+      purchases: groupPurchases,
+      productSummaries,
+    };
+  });
+}
+
 

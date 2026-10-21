@@ -12,6 +12,12 @@ import {
   BookOpen,
   BarChart3,
   Lock,
+  PackagePlus,
+  RotateCcw,
+  CheckCircle2,
+  AlertCircle,
+  Info,
+  X,
 } from 'lucide-react';
 import { lockSiteSystem } from '@/components/passcode-gate';
 import {
@@ -38,6 +44,7 @@ import {
   calculateMetricsForTimeframe,
   getRecentSales,
   getLowStockProducts,
+  deduplicateCategories,
 } from '@/lib/calculations';
 import { KpiSummaryCards } from '@/components/kpi-summary-cards';
 import { QuickActions } from '@/components/quick-actions';
@@ -56,6 +63,11 @@ import { ManageCategoriesModal } from '@/components/modals/manage-categories-mod
 import { AddCustomerModal } from '@/components/modals/add-customer-modal';
 import { CustomerProfileModal } from '@/components/modals/customer-profile-modal';
 import { DeleteCustomerModal } from '@/components/modals/delete-customer-modal';
+import { DeleteProductModal } from '@/components/modals/delete-product-modal';
+import { EditStockModal } from '@/components/modals/edit-stock-modal';
+import { DeleteStockModal } from '@/components/modals/delete-stock-modal';
+import { MonthlyStockLedger } from '@/components/monthly-stock-ledger';
+import { SystemResetModal } from '@/components/modals/system-reset-modal';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { ThemeSwitcher } from '@/components/theme-switcher';
 import { useLanguage } from '@/context/language-context';
@@ -65,7 +77,7 @@ export const ExecutiveDashboard: React.FC = () => {
   const { t, language, formatNumber } = useLanguage();
 
   // Navigation Tab State
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'daily_ledger' | 'due_khata'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'stock_history' | 'daily_ledger' | 'due_khata'>('overview');
   const [overviewTimeframe, setOverviewTimeframe] = useState<TimeframePeriod>('overall');
 
   // Cloud Sync state
@@ -76,6 +88,7 @@ export const ExecutiveDashboard: React.FC = () => {
   const STORAGE_KEYS = {
     CATEGORIES: 'aqua_shop_categories_v2',
     PRODUCTS: 'aqua_shop_products_v2',
+    DELETED_PRODUCT_IDS: 'aqua_shop_deleted_product_ids_v2',
     PURCHASES: 'aqua_shop_purchases_v2',
     CUSTOMERS: 'aqua_shop_customers_v2',
     SALES: 'aqua_shop_sales_v2',
@@ -109,6 +122,22 @@ export const ExecutiveDashboard: React.FC = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isEditProductOpen, setIsEditProductOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isDeleteProductOpen, setIsDeleteProductOpen] = useState(false);
+  const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
+  const [isEditStockOpen, setIsEditStockOpen] = useState(false);
+  const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);
+  const [isDeleteStockOpen, setIsDeleteStockOpen] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<{
+    message: string;
+    type: 'success' | 'error' | 'info';
+  } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToastMessage({ message, type });
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   const isDifferent = (prevList: any[], nextList: any[]) => {
     if (prevList.length !== nextList.length) return true;
@@ -119,14 +148,33 @@ export const ExecutiveDashboard: React.FC = () => {
     if (!data || !data.success) return;
 
     if (Array.isArray(data.categories)) {
+      const deduped = deduplicateCategories(data.categories);
       setCategories((prev) => {
-        if (!isDifferent(prev, data.categories)) return prev;
-        saveStorage(STORAGE_KEYS.CATEGORIES, data.categories);
-        return data.categories;
+        if (!isDifferent(prev, deduped)) return prev;
+        saveStorage(STORAGE_KEYS.CATEGORIES, deduped);
+        return deduped;
       });
     }
     if (Array.isArray(data.products)) {
-      const cleaned = data.products.filter((p: Product) => p && !DEMO_PRODUCT_NAMES.has(p.name));
+      let deletedSet = new Set<number>();
+      try {
+        const localDeleted = localStorage.getItem(STORAGE_KEYS.DELETED_PRODUCT_IDS);
+        if (localDeleted) {
+          const parsed = JSON.parse(localDeleted);
+          if (Array.isArray(parsed)) deletedSet = new Set(parsed);
+        }
+      } catch {}
+
+      const cleaned = data.products
+        .filter(
+          (p: Product) => p && !DEMO_PRODUCT_NAMES.has(p.name) && !deletedSet.has(p.id) && !p.is_deleted
+        )
+        .map((p: Product) => ({
+          ...p,
+          current_stock: Math.max(0, Number(p.current_stock) || 0),
+          cost_price: Math.max(0, Number(p.cost_price) || 0),
+          selling_price: Math.max(0, Number(p.selling_price) || 0),
+        }));
       setProducts((prev) => {
         if (!isDifferent(prev, cleaned)) return prev;
         saveStorage(STORAGE_KEYS.PRODUCTS, cleaned);
@@ -179,12 +227,34 @@ export const ExecutiveDashboard: React.FC = () => {
       try {
         const localCats = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
         let parsedCats = localCats ? JSON.parse(localCats) : null;
-        if (Array.isArray(parsedCats) && parsedCats.length > 0) setCategories(parsedCats);
+        if (Array.isArray(parsedCats)) {
+          const deduped = deduplicateCategories(parsedCats);
+          setCategories(deduped);
+          parsedCats = deduped;
+        }
+
+        let deletedSet = new Set<number>();
+        try {
+          const localDeleted = localStorage.getItem(STORAGE_KEYS.DELETED_PRODUCT_IDS);
+          if (localDeleted) {
+            const parsed = JSON.parse(localDeleted);
+            if (Array.isArray(parsed)) deletedSet = new Set(parsed);
+          }
+        } catch {}
 
         const localProds = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
         let parsedProds = localProds ? JSON.parse(localProds) : null;
         if (Array.isArray(parsedProds)) {
-          const cleaned = parsedProds.filter((p: Product) => p && !DEMO_PRODUCT_NAMES.has(p.name));
+          const cleaned = parsedProds
+            .filter(
+              (p: Product) => p && !DEMO_PRODUCT_NAMES.has(p.name) && !deletedSet.has(p.id) && !p.is_deleted
+            )
+            .map((p: Product) => ({
+              ...p,
+              current_stock: Math.max(0, Number(p.current_stock) || 0),
+              cost_price: Math.max(0, Number(p.cost_price) || 0),
+              selling_price: Math.max(0, Number(p.selling_price) || 0),
+            }));
           setProducts(cleaned);
           parsedProds = cleaned;
         }
@@ -285,6 +355,23 @@ export const ExecutiveDashboard: React.FC = () => {
         broadcast.onmessage = (event) => {
           if (event.data?.type === 'SYNC') {
             syncData(true);
+          } else if (event.data?.type === 'SYSTEM_RESET') {
+            try {
+              const keysToClear = [
+                STORAGE_KEYS.CATEGORIES,
+                STORAGE_KEYS.PRODUCTS,
+                STORAGE_KEYS.PURCHASES,
+                STORAGE_KEYS.CUSTOMERS,
+                STORAGE_KEYS.SALES,
+                STORAGE_KEYS.SALE_ITEMS,
+                STORAGE_KEYS.DUE_COLLECTIONS,
+                'niloy_shop_categories',
+                'niloy_shop_products',
+                'niloy_shop_purchases',
+              ];
+              keysToClear.forEach((k) => localStorage.removeItem(k));
+            } catch {}
+            syncData(false);
           }
         };
       } catch {}
@@ -486,17 +573,35 @@ export const ExecutiveDashboard: React.FC = () => {
         return next;
       });
       setProducts((prev) => {
-        const next = prev.map((p) => (p.category_id === id ? { ...p, category_id: 0 } : p));
+        const next = prev.map((p) => (p.category_id === id ? { ...p, category_id: 0, category_name: 'Uncategorized' } : p));
         saveStorage(STORAGE_KEYS.PRODUCTS, next);
         return next;
       });
+      broadcastSyncEvent();
     } catch {
       setCategories((prev) => {
         const next = prev.filter((c) => c.id !== id);
         saveStorage(STORAGE_KEYS.CATEGORIES, next);
         return next;
       });
+      broadcastSyncEvent();
     }
+  };
+
+  const handleDeleteAllCategories = async () => {
+    try {
+      await fetch('/api/categories?all=true', { method: 'DELETE' });
+    } catch (err) {
+      console.error('Error deleting all categories:', err);
+    }
+    setCategories([]);
+    saveStorage(STORAGE_KEYS.CATEGORIES, []);
+    setProducts((prev) => {
+      const next = prev.map((p) => ({ ...p, category_id: 0, category_name: 'Uncategorized' }));
+      saveStorage(STORAGE_KEYS.PRODUCTS, next);
+      return next;
+    });
+    broadcastSyncEvent();
   };
 
   // Customer Addition Handler
@@ -880,6 +985,165 @@ export const ExecutiveDashboard: React.FC = () => {
     }
   };
 
+  const handleOpenEditStock = (purchase: Purchase) => {
+    setEditingPurchase(purchase);
+    setIsEditStockOpen(true);
+  };
+
+  const handleOpenDeleteStock = (purchaseId: number) => {
+    const p = purchases.find((purch) => purch.id === purchaseId);
+    if (p) {
+      setPurchaseToDelete(p);
+      setIsDeleteStockOpen(true);
+    }
+  };
+
+  const handleUpdateStock = async (updatedData: {
+    id: number;
+    product_id: number;
+    quantity: number;
+    multiplier: number;
+    unit_type: string;
+    unit_cost: number;
+    total_investment: number;
+    purchase_date: string;
+  }) => {
+    const oldPurchase = purchases.find((p) => p.id === updatedData.id);
+    if (!oldPurchase) return;
+
+    const oldProdId = oldPurchase.product_id;
+    const newProdId = updatedData.product_id;
+    const oldPieces = (Number(oldPurchase.quantity) || 0) * (Number(oldPurchase.multiplier) || 1);
+    const newPieces = (Number(updatedData.quantity) || 0) * (Number(updatedData.multiplier) || 1);
+
+    const updatedPurchase: Purchase = {
+      ...oldPurchase,
+      ...updatedData,
+      total_pieces_added: newPieces,
+    };
+
+    setPurchases((prev) => {
+      const next = prev.map((p) => (p.id === updatedData.id ? updatedPurchase : p));
+      saveStorage(STORAGE_KEYS.PURCHASES, next);
+      return next;
+    });
+
+    // Adjust product current_stock
+    setProducts((prevProducts) => {
+      const next = prevProducts.map((p) => {
+        if (oldProdId === newProdId) {
+          if (p.id === newProdId) {
+            const diff = newPieces - oldPieces;
+            return {
+              ...p,
+              current_stock: Math.max(0, (Number(p.current_stock) || 0) + diff),
+              cost_price: updatedData.unit_cost > 0 ? updatedData.unit_cost : p.cost_price,
+            };
+          }
+        } else {
+          if (p.id === oldProdId) {
+            return {
+              ...p,
+              current_stock: Math.max(0, (Number(p.current_stock) || 0) - oldPieces),
+            };
+          }
+          if (p.id === newProdId) {
+            return {
+              ...p,
+              current_stock: (Number(p.current_stock) || 0) + newPieces,
+              cost_price: updatedData.unit_cost > 0 ? updatedData.unit_cost : p.cost_price,
+            };
+          }
+        }
+        return p;
+      });
+      saveStorage(STORAGE_KEYS.PRODUCTS, next);
+      return next;
+    });
+
+    showToast(t('toast.stockUpdated'), 'success');
+
+    // Sync to API PUT /api/purchases
+    try {
+      const res = await fetch('/api/purchases', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedData),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.purchase) {
+          setPurchases((prev) => {
+            const next = prev.map((p) => (p.id === updatedData.id ? { ...p, ...data.purchase } : p));
+            saveStorage(STORAGE_KEYS.PURCHASES, next);
+            return next;
+          });
+        }
+        if (Array.isArray(data.products)) {
+          setProducts((prev) => {
+            const next = prev.map((p) => {
+              const updated = data.products.find((up: any) => up.id === p.id);
+              return updated || p;
+            });
+            saveStorage(STORAGE_KEYS.PRODUCTS, next);
+            return next;
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Offline: stock update saved locally', e);
+    }
+  };
+
+  const handleDeleteStock = async (purchaseId: number) => {
+    const pToDelete = purchases.find((p) => p.id === purchaseId);
+    if (!pToDelete) return;
+
+    const prodId = pToDelete.product_id;
+    const pieces = (Number(pToDelete.quantity) || 0) * (Number(pToDelete.multiplier) || 1);
+
+    // 1. Remove from purchases state
+    setPurchases((prev) => {
+      const next = prev.filter((p) => p.id !== purchaseId);
+      saveStorage(STORAGE_KEYS.PURCHASES, next);
+      return next;
+    });
+
+    // 2. Deduct from product current_stock
+    setProducts((prev) => {
+      const next = prev.map((p) => {
+        if (p.id === prodId) {
+          return {
+            ...p,
+            current_stock: Math.max(0, (Number(p.current_stock) || 0) - pieces),
+          };
+        }
+        return p;
+      });
+      saveStorage(STORAGE_KEYS.PRODUCTS, next);
+      return next;
+    });
+
+    showToast(t('toast.stockDeleted'), 'success');
+
+    // 3. Sync to API DELETE /api/purchases?id=...
+    try {
+      const res = await fetch(`/api/purchases?id=${purchaseId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success && data.product) {
+        setProducts((prev) => {
+          const next = prev.map((p) => (p.id === data.product.id ? data.product : p));
+          saveStorage(STORAGE_KEYS.PRODUCTS, next);
+          return next;
+        });
+      }
+    } catch (e) {
+      console.warn('Offline: stock deletion saved locally', e);
+    }
+  };
+
   const handleAddProduct = async (prodData: {
     name: string;
     category_id: number;
@@ -990,19 +1254,65 @@ export const ExecutiveDashboard: React.FC = () => {
     }
   };
 
-  const handleDeleteProduct = async (productId: number) => {
-    setProducts((prev) => {
-      const next = prev.filter((p) => p.id !== productId);
-      saveStorage(STORAGE_KEYS.PRODUCTS, next);
-      return next;
-    });
+  const handleRequestDeleteProduct = (prod: Product) => {
+    setProductToDelete(prod);
+    setIsDeleteProductOpen(true);
+  };
 
+  const handleDeleteProduct = async (productId: number) => {
+    const previousProducts = products;
+    const nextProducts = previousProducts.filter((p) => p.id !== productId);
+
+    // 1. Optimistic removal from state & localStorage
+    setProducts(nextProducts);
+    saveStorage(STORAGE_KEYS.PRODUCTS, nextProducts);
+
+    // Save into deleted IDs set to prevent resurrection from stale caches
+    let previousDeleted: number[] = [];
     try {
-      await fetch(`/api/products?id=${productId}`, {
+      const localDeleted = localStorage.getItem(STORAGE_KEYS.DELETED_PRODUCT_IDS);
+      if (localDeleted) {
+        const parsed = JSON.parse(localDeleted);
+        if (Array.isArray(parsed)) previousDeleted = parsed;
+      }
+      if (!previousDeleted.includes(productId)) {
+        saveStorage(STORAGE_KEYS.DELETED_PRODUCT_IDS, [...previousDeleted, productId]);
+      }
+    } catch {}
+
+    // 2. Call backend DELETE endpoint
+    try {
+      const res = await fetch(`/api/products?id=${productId}`, {
         method: 'DELETE',
       });
-    } catch (e) {
-      // Offline fallback
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || 'Failed to delete product from database');
+      }
+
+      // Broadcast to other open tabs for instant multi-tab sync
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        try {
+          const bc = new BroadcastChannel('aqua_shop_sync_channel');
+          bc.postMessage({ type: 'SYNC' });
+          bc.close();
+        } catch {}
+      }
+
+      showToast(
+        language === 'bn'
+          ? `পণ্যটি সফলভাবে মুছে ফেলা হয়েছে।`
+          : `Product successfully deleted.`,
+        'success'
+      );
+    } catch (err: any) {
+      console.error('Failed deleting product from database:', err);
+      // Revert optimistic update on failure
+      setProducts(previousProducts);
+      saveStorage(STORAGE_KEYS.PRODUCTS, previousProducts);
+      saveStorage(STORAGE_KEYS.DELETED_PRODUCT_IDS, previousDeleted);
+      throw err;
     }
   };
 
@@ -1068,6 +1378,57 @@ export const ExecutiveDashboard: React.FC = () => {
     } catch (e) {
       // LocalStorage backup preserved
     }
+  };
+
+  const handleSystemReset = async (options: {
+    mode: 'full' | 'transactions_only';
+    passcode: string;
+    confirmKeyword: string;
+  }) => {
+    const res = await fetch('/api/system/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(options),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'System reset failed');
+    }
+
+    // Clear client-side cached data
+    try {
+      const keysToClear = [
+        STORAGE_KEYS.CATEGORIES,
+        STORAGE_KEYS.PRODUCTS,
+        STORAGE_KEYS.PURCHASES,
+        STORAGE_KEYS.CUSTOMERS,
+        STORAGE_KEYS.SALES,
+        STORAGE_KEYS.SALE_ITEMS,
+        STORAGE_KEYS.DUE_COLLECTIONS,
+        'niloy_shop_categories',
+        'niloy_shop_products',
+        'niloy_shop_purchases',
+      ];
+      keysToClear.forEach((k) => localStorage.removeItem(k));
+    } catch (e) {
+      console.error('Error clearing localStorage keys:', e);
+    }
+
+    // Broadcast reset event across all tabs & windows
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        const bc = new BroadcastChannel('aqua_shop_sync_channel');
+        bc.postMessage({ type: 'SYSTEM_RESET', timestamp: Date.now(), mode: options.mode });
+        bc.close();
+      } catch {}
+    }
+
+    // Directly apply the returned clean state
+    applySyncedState(data);
+
+    // Show success toast
+    showToast(t('toast.resetSuccess'), 'success');
   };
 
   return (
@@ -1155,6 +1516,15 @@ export const ExecutiveDashboard: React.FC = () => {
             </button>
 
             <button
+              onClick={() => setIsResetModalOpen(true)}
+              title={t('systemReset.btnTitle')}
+              className="p-2 sm:px-3 sm:py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 rounded-xl text-xs font-semibold text-red-300 hover:text-white flex items-center transition-all shadow-md active:scale-95 min-h-[36px]"
+            >
+              <RotateCcw className="w-3.5 h-3.5 sm:mr-1.5" />
+              <span className="hidden sm:inline">{t('systemReset.btnLabel')}</span>
+            </button>
+
+            <button
               onClick={handleOpenManageCategories}
               title={language === 'bn' ? 'ক্যাটাগরি ম্যানেজমেন্ট' : 'Manage Categories'}
               className="p-2 sm:px-3.5 sm:py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-xl text-xs font-semibold text-purple-300 hover:text-white flex items-center transition-all shadow-md active:scale-95 min-h-[36px]"
@@ -1224,6 +1594,18 @@ export const ExecutiveDashboard: React.FC = () => {
           >
             <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
             <span className="truncate">{t('nav.products')}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('stock_history')}
+            className={`flex-1 min-w-[110px] sm:min-w-0 py-2 sm:py-2.5 px-2.5 sm:px-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-1.5 sm:space-x-2 shrink-0 sm:shrink min-h-[42px] ${
+              activeTab === 'stock_history'
+                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-950'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <PackagePlus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="truncate">{t('nav.stockHistory')}</span>
           </button>
 
           <button
@@ -1338,6 +1720,22 @@ export const ExecutiveDashboard: React.FC = () => {
               onOpenAddProduct={handleOpenAddProduct}
               onOpenManageCategories={handleOpenManageCategories}
               onDeleteProduct={handleDeleteProduct}
+              onRequestDeleteProduct={handleRequestDeleteProduct}
+              onViewStockHistory={() => setActiveTab('stock_history')}
+            />
+          </div>
+        )}
+
+        {/* TAB 3: MONTHLY STOCK & RESTOCK LEDGER */}
+        {activeTab === 'stock_history' && (
+          <div className="animate-in fade-in duration-200">
+            <MonthlyStockLedger
+              purchases={purchases}
+              products={products}
+              categories={categories}
+              onOpenAddStock={(prodId) => handleOpenAddStock(prodId)}
+              onEditStock={handleOpenEditStock}
+              onDeleteStock={handleOpenDeleteStock}
             />
           </div>
         )}
@@ -1413,6 +1811,7 @@ export const ExecutiveDashboard: React.FC = () => {
           categories={categories}
           onUpdateProduct={handleUpdateProduct}
           onAddCategory={handleAddCategory}
+          onDeleteProduct={handleRequestDeleteProduct}
         />
 
         <CollectDueModal
@@ -1436,6 +1835,7 @@ export const ExecutiveDashboard: React.FC = () => {
           onAddCategory={handleAddCategory}
           onEditCategory={handleEditCategory}
           onDeleteCategory={handleDeleteCategory}
+          onDeleteAllCategories={handleDeleteAllCategories}
         />
 
         <AddCustomerModal
@@ -1476,6 +1876,85 @@ export const ExecutiveDashboard: React.FC = () => {
           dueCollections={dueCollections}
           onConfirmDelete={handleDeleteCustomer}
         />
+
+        <DeleteProductModal
+          isOpen={isDeleteProductOpen}
+          onClose={() => {
+            setIsDeleteProductOpen(false);
+            setProductToDelete(null);
+          }}
+          product={productToDelete}
+          categoryName={
+            categories.find((c) => c.id === productToDelete?.category_id)?.name || 'Uncategorized'
+          }
+          saleItems={saleItems}
+          onConfirmDelete={handleDeleteProduct}
+        />
+
+        <EditStockModal
+          isOpen={isEditStockOpen}
+          onClose={() => {
+            setIsEditStockOpen(false);
+            setEditingPurchase(null);
+          }}
+          purchase={editingPurchase}
+          products={products}
+          onUpdateStock={handleUpdateStock}
+        />
+
+        <DeleteStockModal
+          isOpen={isDeleteStockOpen}
+          onClose={() => {
+            setIsDeleteStockOpen(false);
+            setPurchaseToDelete(null);
+          }}
+          purchase={purchaseToDelete}
+          productName={
+            products.find((p) => p.id === purchaseToDelete?.product_id)?.name ||
+            purchaseToDelete?.product_name ||
+            'Product'
+          }
+          onConfirmDelete={handleDeleteStock}
+        />
+
+        <SystemResetModal
+          isOpen={isResetModalOpen}
+          onClose={() => setIsResetModalOpen(false)}
+          categories={categories}
+          products={products}
+          customers={customers}
+          sales={sales}
+          saleItems={saleItems}
+          purchases={purchases}
+          dueCollections={dueCollections}
+          onExecuteReset={handleSystemReset}
+        />
+
+        {toastMessage && (
+          <div className="fixed bottom-5 right-5 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
+            <div
+              className={`flex items-center space-x-3 rounded-2xl p-4 shadow-2xl border backdrop-blur-xl max-w-sm ${
+                toastMessage.type === 'success'
+                  ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-100 shadow-emerald-950/50'
+                  : toastMessage.type === 'error'
+                  ? 'bg-rose-950/90 border-rose-500/50 text-rose-100 shadow-rose-950/50'
+                  : 'bg-slate-900/90 border-slate-700 text-slate-100'
+              }`}
+            >
+              {toastMessage.type === 'success' && <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />}
+              {toastMessage.type === 'error' && <AlertCircle className="h-5 w-5 text-rose-400 shrink-0" />}
+              {toastMessage.type === 'info' && <Info className="h-5 w-5 text-cyan-400 shrink-0" />}
+              <span className="text-sm font-semibold leading-snug flex-1">{toastMessage.message}</span>
+              <button
+                type="button"
+                onClick={() => setToastMessage(null)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

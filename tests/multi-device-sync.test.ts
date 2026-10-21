@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
 // Mock lib/db
-vi.mock('@/lib/db', () => {
+vi.mock('@/lib/db', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/db')>();
   const queryMock = vi.fn();
   const clientMock = {
     query: vi.fn(),
@@ -12,21 +13,25 @@ vi.mock('@/lib/db', () => {
     query: queryMock,
     connect: vi.fn().mockResolvedValue(clientMock),
     on: vi.fn(),
+    __clientMock: clientMock,
   };
   return {
+    ...actual,
     default: poolMock,
+    cleanupDuplicateCategories: vi.fn().mockResolvedValue(undefined),
+    fetchFullDatabaseState: actual.fetchFullDatabaseState,
     __queryMock: queryMock,
     __clientMock: clientMock,
     __poolMock: poolMock,
   };
 });
 
-import pool, { __clientMock, __poolMock } from '@/lib/db';
+import pool from '@/lib/db';
 import { GET, POST } from '@/app/api/sync/route';
 
 describe('Multi-Device Data Sync Route (/api/sync)', () => {
-  const poolMock = (pool || __poolMock) as any;
-  const clientMock = __clientMock as any;
+  const poolMock = pool as any;
+  const clientMock = (pool as any).__clientMock;
 
   beforeEach(() => {
     vi.clearAllMocks();
