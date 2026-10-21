@@ -16,6 +16,7 @@ import {
   TrendingUp,
   Tag,
   CheckCircle2,
+  RotateCcw,
 } from 'lucide-react';
 import { Purchase, Product, Category } from '@/types/executive';
 import { useLanguage } from '@/context/language-context';
@@ -402,6 +403,20 @@ export const MonthlyStockLedger: React.FC<MonthlyStockLedgerProps> = ({
                 </option>
               ))}
             </select>
+
+            {(searchQuery.trim() !== '' || selectedCategoryId !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCategoryId('all');
+                }}
+                className="w-full sm:w-auto px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all active:scale-95 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center justify-center space-x-1.5 min-h-[40px]"
+                title={t('filter.resetDesc')}
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>{t('filter.reset')}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -422,13 +437,27 @@ export const MonthlyStockLedger: React.FC<MonthlyStockLedgerProps> = ({
                   ? 'এই মাসে কোনো স্টক বা পণ্য ক্রয়ের হিসাব নেই। নতুন স্টক যোগ করতে নিচের বাটনে চাপ দিন।'
                   : 'No restock records found for this period. Click below to add new stock.'}
               </p>
-              <button
-                onClick={() => onOpenAddStock()}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 shadow-md shadow-indigo-950 transition-all"
-              >
-                <PackagePlus className="w-4 h-4" />
-                <span>{t('stockLedger.restockNow')}</span>
-              </button>
+              <div className="flex items-center justify-center flex-wrap gap-2">
+                <button
+                  onClick={() => onOpenAddStock()}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 shadow-md shadow-indigo-950 transition-all"
+                >
+                  <PackagePlus className="w-4 h-4" />
+                  <span>{t('stockLedger.restockNow')}</span>
+                </button>
+                {(searchQuery.trim() !== '' || selectedCategoryId !== 'all') && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedCategoryId('all');
+                    }}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-rose-300 rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 border border-slate-700 transition-all"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>{t('filter.reset')}</span>
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <>

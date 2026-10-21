@@ -16,6 +16,7 @@ import {
   Filter,
   Trash2,
   Clock,
+  RotateCcw,
 } from 'lucide-react';
 import { Product, Category } from '@/types/executive';
 import { useLanguage } from '@/context/language-context';
@@ -368,6 +369,21 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
               <span>{language === 'bn' ? 'ক্যাটাগরি' : 'Category'}</span>
             </button>
           )}
+
+          {(searchQuery.trim() !== '' || selectedCategoryId !== 'all' || stockFilter !== 'all') && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedCategoryId('all');
+                setStockFilter('all');
+              }}
+              className="px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all active:scale-95 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center space-x-1 shrink-0 ml-auto"
+              title={t('filter.resetDesc')}
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>{t('filter.reset')}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -393,6 +409,19 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
                 <td colSpan={9} className="py-12 text-center text-slate-500">
                   <Layers className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
                   <p className="text-sm font-semibold">{t('products.noProductsFound')}</p>
+                  {(searchQuery.trim() !== '' || selectedCategoryId !== 'all' || stockFilter !== 'all') && (
+                    <button
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSelectedCategoryId('all');
+                        setStockFilter('all');
+                      }}
+                      className="mt-3 inline-flex items-center space-x-1.5 px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-teal-300 rounded-xl text-xs font-semibold border border-slate-700 transition-all shadow-sm active:scale-95"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>{t('filter.reset')}</span>
+                    </button>
+                  )}
                 </td>
               </tr>
             ) : (
@@ -529,6 +558,19 @@ export const ProductInventoryLedger: React.FC<ProductInventoryLedgerProps> = ({
           <div className="p-8 bg-slate-900 border border-slate-800 rounded-2xl text-center text-slate-500">
             <Layers className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
             <p className="text-sm font-semibold">{t('products.noProductsFound')}</p>
+            {(searchQuery.trim() !== '' || selectedCategoryId !== 'all' || stockFilter !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCategoryId('all');
+                  setStockFilter('all');
+                }}
+                className="mt-3 inline-flex items-center space-x-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-teal-300 rounded-xl text-xs font-semibold border border-slate-700 transition-all shadow-sm active:scale-95"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>{t('filter.reset')}</span>
+              </button>
+            )}
           </div>
         ) : (
           filteredProducts.map((p) => {

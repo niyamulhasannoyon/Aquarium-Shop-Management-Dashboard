@@ -386,6 +386,21 @@ export const translations: Record<Language, Record<string, string>> = {
     'systemReset.confirmBtn': 'Execute Safe Reset',
     'systemReset.resetting': 'Resetting System...',
     'systemReset.cancel': 'Cancel',
+
+    // System Administration & Data Governance
+    'systemAdmin.title': 'System Administration & Data Governance',
+    'systemAdmin.subtitle': 'Manage database integrity, download routine backups, or perform authorized ledger resets.',
+    'systemAdmin.statusLive': 'Cloud Database Synced',
+    'systemAdmin.backupBtn': 'Download System Backup (.json)',
+    'systemAdmin.backupDesc': 'Secure a timestamped offline JSON archive of all catalog, sales, customers, and ledger entries.',
+    'systemAdmin.resetBtn': 'System Reset & Cleanup',
+    'systemAdmin.resetDesc': 'Perform authorized transactions reset or full factory restore with safety checks.',
+    'systemAdmin.recordsSummary': 'Database Footprint',
+    'systemAdmin.backupSuccess': 'Database backup JSON downloaded successfully!',
+
+    // Filter Controls
+    'filter.reset': 'Reset Filters',
+    'filter.resetDesc': 'Clear active filters and search query',
   },
 
   bn: {
@@ -769,5 +784,20 @@ export const translations: Record<Language, Record<string, string>> = {
     'systemReset.confirmBtn': 'নিরাপদ রিসেট সম্পন্ন করুন',
     'systemReset.resetting': 'সিস্টেম রিসেট হচ্ছে...',
     'systemReset.cancel': 'বাতিল',
+
+    // System Administration & Data Governance
+    'systemAdmin.title': 'সিস্টেম প্রশাসন ও ডাটা ব্যবস্থাপনা',
+    'systemAdmin.subtitle': 'ডাটাবেজের সুরক্ষা, ব্যাকআপ সংরক্ষণ অথবা অনুমোদিত খতিয়ান রিসেট পরিচালনা করুন।',
+    'systemAdmin.statusLive': 'ক্লাউড ডাটাবেজ সিঙ্কড',
+    'systemAdmin.backupBtn': 'ডাটা ব্যাকআপ ডাউনলোড (.json)',
+    'systemAdmin.backupDesc': 'সকল পণ্য, বিক্রয়, কাস্টমার ও বাকি হিসাবের একটি সম্পূর্ণ অফলাইন ব্যাকআপ সংরক্ষণ করুন।',
+    'systemAdmin.resetBtn': 'সিস্টেম ও ডাটা রিসেট',
+    'systemAdmin.resetDesc': 'নিরাপত্তা যাচাইকরণের মাধ্যমে লেনদেন মোছা বা সম্পূর্ণ ফ্যাক্টরি রিসেট করুন।',
+    'systemAdmin.recordsSummary': 'ডাটাবেজ বিবরণী',
+    'systemAdmin.backupSuccess': 'ডাটাবেজ ব্যাকআপ JSON ফাইল সফলভাবে ডাউনলোড হয়েছে!',
+
+    // Filter Controls
+    'filter.reset': 'ফিল্টার রিসেট',
+    'filter.resetDesc': 'সকল ফিল্টার ও সার্চ মুছে ফেলুন',
   },
 };

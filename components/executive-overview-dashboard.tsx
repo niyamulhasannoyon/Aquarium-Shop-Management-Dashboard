@@ -18,7 +18,11 @@ import {
   AlertCircle,
   Info,
   X,
+  ShieldCheck,
+  Download,
+  Database,
 } from 'lucide-react';
+import { downloadSystemBackup } from '@/lib/backup';
 import { lockSiteSystem } from '@/components/passcode-gate';
 import {
   Category,
@@ -1380,6 +1384,21 @@ export const ExecutiveDashboard: React.FC = () => {
     }
   };
 
+  const handleDirectBackupDownload = () => {
+    const success = downloadSystemBackup({
+      categories,
+      products,
+      customers,
+      sales,
+      saleItems,
+      purchases,
+      dueCollections,
+    });
+    if (success) {
+      showToast(t('systemAdmin.backupSuccess'), 'success');
+    }
+  };
+
   const handleSystemReset = async (options: {
     mode: 'full' | 'transactions_only';
     passcode: string;
@@ -1387,7 +1406,7 @@ export const ExecutiveDashboard: React.FC = () => {
   }) => {
     const res = await fetch('/api/system/reset', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify(options),
     });
 
@@ -1399,20 +1418,45 @@ export const ExecutiveDashboard: React.FC = () => {
     // Clear client-side cached data
     try {
       const keysToClear = [
-        STORAGE_KEYS.CATEGORIES,
-        STORAGE_KEYS.PRODUCTS,
-        STORAGE_KEYS.PURCHASES,
-        STORAGE_KEYS.CUSTOMERS,
         STORAGE_KEYS.SALES,
         STORAGE_KEYS.SALE_ITEMS,
         STORAGE_KEYS.DUE_COLLECTIONS,
-        'niloy_shop_categories',
-        'niloy_shop_products',
+        STORAGE_KEYS.PURCHASES,
+        'niloy_shop_sales',
+        'niloy_shop_sale_items',
+        'niloy_shop_due_collections',
         'niloy_shop_purchases',
       ];
+      if (options.mode === 'full') {
+        keysToClear.push(
+          STORAGE_KEYS.CATEGORIES,
+          STORAGE_KEYS.PRODUCTS,
+          STORAGE_KEYS.CUSTOMERS,
+          STORAGE_KEYS.DELETED_PRODUCT_IDS,
+          'niloy_shop_categories',
+          'niloy_shop_products',
+          'niloy_shop_customers'
+        );
+      }
       keysToClear.forEach((k) => localStorage.removeItem(k));
     } catch (e) {
       console.error('Error clearing localStorage keys:', e);
+    }
+
+    // Immediately update local React states
+    if (options.mode === 'full') {
+      setSales([]);
+      setSaleItems([]);
+      setDueCollections([]);
+      setPurchases([]);
+      setProducts([]);
+      setCustomers([]);
+    } else {
+      setSales([]);
+      setSaleItems([]);
+      setDueCollections([]);
+      setPurchases([]);
+      setCustomers((prev) => prev.map((c) => ({ ...c, total_due: 0 })));
     }
 
     // Broadcast reset event across all tabs & windows
@@ -1424,7 +1468,7 @@ export const ExecutiveDashboard: React.FC = () => {
       } catch {}
     }
 
-    // Directly apply the returned clean state
+    // Directly apply the returned clean state from database
     applySyncedState(data);
 
     // Show success toast
@@ -1705,6 +1749,98 @@ export const ExecutiveDashboard: React.FC = () => {
                 onRestockItem={(prodId) => handleOpenAddStock(prodId)}
                 onViewAllProducts={() => setActiveTab('products')}
               />
+            </section>
+
+            {/* 4. Professional System Administration & Data Governance Section */}
+            <section className="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-6 backdrop-blur-md shadow-xl space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2.5 rounded-2xl bg-gradient-to-tr from-rose-500/20 to-amber-500/20 text-rose-400 border border-rose-500/30 shadow-md shrink-0">
+                    <ShieldCheck className="w-5 h-5 text-rose-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h3 className="text-sm sm:text-base font-bold text-white tracking-wide">
+                        {t('systemAdmin.title')}
+                      </h3>
+                      <span className="hidden sm:inline-flex items-center space-x-1 text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>{t('systemAdmin.statusLive')}</span>
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                      {t('systemAdmin.subtitle')}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Administrative Controls */}
+                <div className="flex items-center flex-wrap gap-2.5 w-full lg:w-auto">
+                  <button
+                    type="button"
+                    onClick={handleDirectBackupDownload}
+                    className="flex-1 sm:flex-none px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700/90 border border-slate-700 hover:border-emerald-500/50 rounded-xl text-xs sm:text-sm font-semibold text-slate-200 hover:text-white flex items-center justify-center space-x-2 transition-all shadow-md active:scale-95 min-h-[40px]"
+                    title="Download offline JSON backup file"
+                  >
+                    <Download className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>{t('systemAdmin.backupBtn')}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsResetModalOpen(true)}
+                    title={t('systemReset.btnTitle')}
+                    className="flex-1 sm:flex-none px-3.5 py-2.5 bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 rounded-xl text-xs sm:text-sm font-bold text-rose-300 hover:text-white flex items-center justify-center space-x-2 transition-all shadow-md shadow-rose-950/30 active:scale-95 min-h-[40px]"
+                  >
+                    <RotateCcw className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>{t('systemAdmin.resetBtn')}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* System Footprint Summary */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 sm:gap-3 text-xs">
+                <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-3 text-center">
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold block mb-0.5">
+                    {t('systemReset.salesCount')}
+                  </span>
+                  <span className="text-base sm:text-lg font-mono font-bold text-white">
+                    {formatNumber(sales.length)}
+                  </span>
+                </div>
+                <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-3 text-center">
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold block mb-0.5">
+                    {t('systemReset.productsCount')}
+                  </span>
+                  <span className="text-base sm:text-lg font-mono font-bold text-cyan-300">
+                    {formatNumber(products.length)}
+                  </span>
+                </div>
+                <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-3 text-center">
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold block mb-0.5">
+                    {t('systemReset.customersCount')}
+                  </span>
+                  <span className="text-base sm:text-lg font-mono font-bold text-purple-300">
+                    {formatNumber(customers.length)}
+                  </span>
+                </div>
+                <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-3 text-center">
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold block mb-0.5">
+                    {t('systemReset.purchasesCount')}
+                  </span>
+                  <span className="text-base sm:text-lg font-mono font-bold text-indigo-300">
+                    {formatNumber(purchases.length)}
+                  </span>
+                </div>
+                <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-3 text-center col-span-2 sm:col-span-1">
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold block mb-0.5">
+                    {t('systemReset.duesCount')}
+                  </span>
+                  <span className="text-base sm:text-lg font-mono font-bold text-amber-300">
+                    {formatNumber(dueCollections.length)}
+                  </span>
+                </div>
+              </div>
             </section>
           </div>
         )}
